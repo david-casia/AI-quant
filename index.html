@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>量化交易作业 - 薛德刚</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", -apple-system, sans-serif;
+            background: #0f1923;
+            color: #e0e0e0;
+            min-height: 100vh;
+        }
+        .hero {
+            text-align: center;
+            padding: 60px 20px 40px;
+            background: linear-gradient(135deg, #1a2a3a 0%, #0d1b2a 100%);
+            border-bottom: 1px solid #2a3a4a;
+        }
+        .hero h1 {
+            font-size: 2.2em;
+            color: #ffffff;
+            margin-bottom: 8px;
+        }
+        .hero .subtitle {
+            font-size: 1.1em;
+            color: #8899aa;
+        }
+        .hero .stock-badge {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 4px 16px;
+            background: #e63946;
+            color: #fff;
+            border-radius: 20px;
+            font-size: 0.95em;
+            font-weight: bold;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .task-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+        .task-card {
+            background: #1a2a3a;
+            border: 1px solid #2a3a4a;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .task-card:hover {
+            transform: translateY(-3px);
+            border-color: #3a5a7a;
+        }
+        .task-header {
+            padding: 20px 24px 12px;
+        }
+        .task-header h2 {
+            font-size: 1.3em;
+            color: #4fc3f7;
+            margin-bottom: 6px;
+        }
+        .task-header p {
+            color: #8899aa;
+            font-size: 0.92em;
+            line-height: 1.6;
+        }
+        .task-body {
+            padding: 0 24px 20px;
+        }
+        .task-links {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 18px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-size: 0.92em;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #2962ff;
+            color: #fff;
+        }
+        .btn-primary:hover { background: #1e4dd8; }
+        .btn-secondary {
+            background: #2a3a4a;
+            color: #ccc;
+        }
+        .btn-secondary:hover { background: #3a4a5a; }
+        .tech-stack {
+            background: #162028;
+            border-radius: 10px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+        .tech-stack h3 {
+            color: #4fc3f7;
+            font-size: 1.05em;
+            margin-bottom: 12px;
+        }
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .tag {
+            padding: 4px 12px;
+            background: #233040;
+            border-radius: 4px;
+            font-size: 0.85em;
+            color: #aabbcc;
+        }
+        .info-section {
+            text-align: center;
+            padding: 20px;
+            color: #556677;
+            font-size: 0.88em;
+            border-top: 1px solid #1a2a3a;
+        }
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        .data-table th, .data-table td {
+            padding: 8px 12px;
+            text-align: left;
+            border-bottom: 1px solid #2a3a4a;
+        }
+        .data-table th {
+            color: #4fc3f7;
+            font-size: 0.85em;
+        }
+        .data-table td {
+            color: #aabbcc;
+            font-size: 0.88em;
+        }
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>AI辅助的金融交易策略</h1>
+    <p class="subtitle">量化交易课程作业 &middot; 薛德刚</p>
+    <span class="stock-badge">分析标的：比亚迪 002594.SZ</span>
+</div>
+
+<div class="container">
+
+    <div class="tech-stack">
+        <h3>项目概览</h3>
+        <table class="data-table">
+            <tr><th>数据来源</th><td>Tushare pro_bar（非复权日线）</td></tr>
+            <tr><th>数据期间</th><td>2025-07-04 ~ 2026-07-03（242个交易日）</td></tr>
+            <tr><th>技术指标</th><td>RSI(14) / MACD(12,26,9) / 布林带(20,2) / KDJ(9,3,3)</td></tr>
+            <tr><th>关键事件</th><td>2025-07-29 除权除息（高送转1:3.0）</td></tr>
+        </table>
+        <br>
+        <h3>技术栈</h3>
+        <div class="tags">
+            <span class="tag">Python</span>
+            <span class="tag">pandas</span>
+            <span class="tag">numpy</span>
+            <span class="tag">matplotlib</span>
+            <span class="tag">Tushare API</span>
+            <span class="tag">weasyprint</span>
+        </div>
+    </div>
+
+    <div class="task-grid">
+        <div class="task-card">
+            <div class="task-header">
+                <h2>TASK 1 &mdash; 数据获取与收盘价可视化</h2>
+                <p>通过Tushare API获取比亚迪日线数据，绘制收盘价走势图，生成分析报告。包含三级降级数据拉取策略与除权除息自动检测。</p>
+            </div>
+            <div class="task-body">
+                <div class="task-links">
+                    <a href="TASK1/薛德刚+TASK1.html" class="btn btn-primary">在线浏览报告</a>
+                    <a href="TASK1/薛德刚+TASK1.pdf" class="btn btn-secondary">下载PDF</a>
+                    <a href="TASK1/002594_daily.csv" class="btn btn-secondary">原始数据CSV</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="task-card">
+            <div class="task-header">
+                <h2>TASK 2 &mdash; 技术指标计算与可视化</h2>
+                <p>纯pandas手动实现RSI、MACD、布林带、KDJ四类技术指标（无ta-lib依赖），绘制四张指标图，分析除权对各指标的影响。</p>
+            </div>
+            <div class="task-body">
+                <div class="task-links">
+                    <a href="TASK2/薛德刚+TASK2.html" class="btn btn-primary">在线浏览报告</a>
+                    <a href="TASK2/薛德刚+TASK2.pdf" class="btn btn-secondary">下载PDF</a>
+                    <a href="TASK2/002594_with_indicators.csv" class="btn btn-secondary">指标数据CSV</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="info-section">
+    <p>数据获取时间：2026-07-03 &middot; 报告生成工具：Python + matplotlib + weasyprint</p>
+</div>
+
+</body>
+</html>

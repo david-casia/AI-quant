@@ -162,10 +162,10 @@
     <div class="tech-stack">
         <h3>项目概览</h3>
         <table class="data-table">
-            <tr><th>数据来源</th><td>Tushare pro_bar（非复权日线）</td></tr>
-            <tr><th>数据期间</th><td>2025-07-04 ~ 2026-07-03（242个交易日）</td></tr>
+            <tr><th>数据来源</th><td>Tushare pro_bar（前复权 qfq 日线）</td></tr>
+            <tr><th>数据期间</th><td>2025-07-04 ~ 2026-07-03（243个交易日）</td></tr>
             <tr><th>技术指标</th><td>RSI(14) / MACD(12,26,9) / 布林带(20,2) / KDJ(9,3,3)</td></tr>
-            <tr><th>关键事件</th><td>2025-07-29 除权除息（高送转1:3.0）</td></tr>
+            <tr><th>复权处理</th><td>前复权，消除除权跳变，价格连续平滑</td></tr>
         </table>
         <br>
         <h3>技术栈</h3>
@@ -183,7 +183,7 @@
         <div class="task-card">
             <div class="task-header">
                 <h2>TASK 1 &mdash; 数据获取与收盘价可视化</h2>
-                <p>通过Tushare API获取比亚迪日线数据，绘制收盘价走势图，生成分析报告。包含三级降级数据拉取策略与除权除息自动检测。</p>
+                <p>通过Tushare API获取比亚迪前复权日线数据，绘制收盘价走势图，生成分析报告。包含三级降级数据拉取策略。</p>
             </div>
             <div class="task-body">
                 <div class="task-links">
@@ -197,7 +197,7 @@
         <div class="task-card">
             <div class="task-header">
                 <h2>TASK 2 &mdash; 技术指标计算与可视化</h2>
-                <p>纯pandas手动实现RSI、MACD、布林带、KDJ四类技术指标（无ta-lib依赖），绘制四张指标图，分析除权对各指标的影响。</p>
+                <p>纯pandas手动实现RSI、MACD、布林带、KDJ四类技术指标（无ta-lib依赖），绘制四张指标图，前复权数据确保指标信号真实有效。</p>
             </div>
             <div class="task-body">
                 <div class="task-links">
@@ -216,6 +216,19 @@
             <div class="task-body">
                 <div class="task-links">
                     <a href="quant_analysis.ipynb" class="btn btn-primary">查看Notebook</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="task-card">
+            <div class="task-header">
+                <h2>交互工具 &mdash; 技术指标实时分析</h2>
+                <p>单页Web应用，滑块实时调节RSI/MACD/布林带/KDJ参数，图表即时重绘。支持CSV上传任意股票，内置比亚迪前复权数据，含预设方案与状态诊断。</p>
+            </div>
+            <div class="task-body">
+                <div class="task-links">
+                    <a href="indicator-tool/index.html" class="btn btn-primary">打开工具</a>
+                    <a href="docs/indicator_tool_design.md" class="btn btn-secondary">设计文档</a>
                 </div>
             </div>
         </div>

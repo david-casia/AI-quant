@@ -27,7 +27,6 @@ FILES = [
     "index.html",
     "quant_analysis.ipynb",
     "scripts/upload_git_api.py",
-    "scripts/upload_to_github.py",
     "TASK1/build_pdf.py",
     "TASK1/content.py",
     "TASK1/fetch_data.py",
@@ -50,6 +49,8 @@ FILES = [
     "TASK2/002594_with_indicators.csv",
     "TASK2/薛德刚+TASK2.html",
     "TASK2/薛德刚+TASK2.pdf",
+    "indicator-tool/index.html",
+    "docs/indicator_tool_design.md",
 ]
 
 
@@ -124,7 +125,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "改用前复权(qfq)数据重跑全套\n\n- fetch_data.py: adj=None -> adj='qfq'\n- TASK1: 收盘价图移除除权日标注，分析文本更新\n- TASK2: 4张指标图移除除权日竖虚线，分析文本更新\n- 价格曲线连续平滑，指标信号真实可靠",
+        "message": "新增交互工具 + 整理目录\n\n- 新增 indicator-tool/index.html: 技术指标实时分析工具(Chart.js+纯JS指标引擎)\n- 新增 docs/indicator_tool_design.md: 工具设计文档\n- 更新 index.html: 加入工具入口卡片, 前复权文案\n- 删除 scripts/upload_to_github.py (已被 upload_git_api.py 替代)",
         "tree": new_tree_sha,
     }
     if parent_sha:

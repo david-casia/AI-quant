@@ -124,7 +124,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "整理目录结构\n\n- notebook重命名: 量化分析 notebook.ipynb → quant_analysis.ipynb\n- upload脚本归入 scripts/ 目录\n- 删除根目录重复CSV（TASK1/TASK2各有原件）\n- index.html新增Notebook卡片入口\n- notebook CSV引用路径修正为 TASK1/002594_daily.csv",
+        "message": "改用前复权(qfq)数据重跑全套\n\n- fetch_data.py: adj=None -> adj='qfq'\n- TASK1: 收盘价图移除除权日标注，分析文本更新\n- TASK2: 4张指标图移除除权日竖虚线，分析文本更新\n- 价格曲线连续平滑，指标信号真实可靠",
         "tree": new_tree_sha,
     }
     if parent_sha:

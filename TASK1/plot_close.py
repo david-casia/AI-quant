@@ -88,26 +88,8 @@ def main():
     ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
     fig.autofmt_xdate(rotation=30)
 
-    # ============ 除权除息日标注 ============
-    # 检测除权日：单日跌幅超过30%通常为高送转除权
-    ex_div_date = None
-    for i in range(1, len(df)):
-        prev_close = df.iloc[i - 1]["close"]
-        curr_close = df.iloc[i]["close"]
-        if prev_close > 0:
-            day_change_pct = (curr_close - prev_close) / prev_close * 100
-            if day_change_pct < -30:
-                ex_div_date = df.iloc[i]["trade_date"]
-                break
-
-    if ex_div_date is not None:
-        ax.axvline(ex_div_date, color="#FF0000", linestyle="--",
-                   linewidth=0.9, alpha=0.6, label="除权除息日")
-        # 在除权日上方标注文字
-        y_top = df["close"].max()
-        ax.text(ex_div_date, y_top, " 除权日",
-                color="red", fontsize=8, fontproperties=zh_font,
-                ha="left", va="top")
+    # ============ 除权除息标注（前复权数据已消除跳变，无需标注） ============
+    # 使用前复权数据后，价格曲线连续平滑，不再有除权断崖
 
     # 网格和图例
     ax.grid(True, linestyle="--", alpha=0.5)

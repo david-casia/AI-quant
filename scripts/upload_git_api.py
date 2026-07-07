@@ -49,6 +49,17 @@ FILES = [
     "TASK2/002594_with_indicators.csv",
     "TASK2/薛德刚+TASK2.html",
     "TASK2/薛德刚+TASK2.pdf",
+    "TASK3/strategy.py",
+    "TASK3/plot_strategy.py",
+    "TASK3/build_pdf.py",
+    "TASK3/content.py",
+    "TASK3/style.css",
+    "TASK3/002594_daily.csv",
+    "TASK3/002594_ma_signals.png",
+    "TASK3/002594_nav_drawdown.png",
+    "TASK3/002594_param_comparison.png",
+    "TASK3/薛德刚+TASK3.html",
+    "TASK3/薛德刚+TASK3.pdf",
     "indicator-tool/index.html",
     "docs/indicator_tool_design.md",
 ]
@@ -125,7 +136,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "新增交互工具 + 整理目录\n\n- 新增 indicator-tool/index.html: 技术指标实时分析工具(Chart.js+纯JS指标引擎)\n- 新增 docs/indicator_tool_design.md: 工具设计文档\n- 更新 index.html: 加入工具入口卡片, 前复权文案\n- 删除 scripts/upload_to_github.py (已被 upload_git_api.py 替代)",
+        "message": "新增TASK3: 双均线策略开发与回测\n\n- strategy.py: 双均线策略引擎(信号+回测+绩效指标)\n- plot_strategy.py: 3张可视化图(信号图/净值回撤/参数对比)\n- 10组均线参数对比测试(MA3/5~MA20/60)\n- PDF报告: 理论+指标解释+回测分析\n- index.html: 新增TASK3入口卡片",
         "tree": new_tree_sha,
     }
     if parent_sha:

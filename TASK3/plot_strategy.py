@@ -188,59 +188,107 @@ def plot_param_comparison():
             "short": short,
             "long": long,
             "return": m["cumulative_return"],
+            "ann_return": m["ann_return"],
             "mdd": m["max_drawdown"],
+            "volatility": m["ann_volatility"],
             "sharpe": m["sharpe"],
             "trades": m["n_trades"],
             "win_rate": m["win_rate"],
+            "plr": m["profit_loss_ratio"],
+            "expectancy": m["expectancy_r"],
         })
 
     res_df = pd.DataFrame(results)
 
-    fig, axes = plt.subplots(2, 2, figsize=(14, 9))
+    fig, axes = plt.subplots(3, 3, figsize=(16, 13))
 
-    bar_colors_ret = ["#E53935" if r >= 0 else "#43A047" for r in res_df["return"]]
-    bar_colors_mdd = ["#43A047" if m >= -10 else "#FF9800" if m >= -20 else "#E53935" for m in res_df["mdd"]]
+    # 颜色辅助
+    def pos_neg_colors(values):
+        return ["#E53935" if v >= 0 else "#43A047" for v in values]
 
-    # 累计回报
+    def mdd_colors(values):
+        return ["#43A047" if m >= -10 else "#FF9800" if m >= -20 else "#E53935" for m in values]
+
+    # 1. 累计回报
     ax = axes[0][0]
-    bars = ax.barh(res_df["combo"], res_df["return"], color=bar_colors_ret, edgecolor="white", linewidth=0.5)
-    ax.set_title("累计回报率(%)", fontsize=12, fontweight="bold", **ZH)
-    ax.set_xlabel("回报率(%)", **ZH)
+    bars = ax.barh(res_df["combo"], res_df["return"], color=pos_neg_colors(res_df["return"]), edgecolor="white", linewidth=0.5)
+    ax.set_title("累计回报率(%)", fontsize=11, fontweight="bold", **ZH)
     ax.axvline(x=0, color="#333", linewidth=0.8)
     for bar, val in zip(bars, res_df["return"]):
         ax.text(val + (0.5 if val >= 0 else -0.5), bar.get_y() + bar.get_height() / 2,
-                f"{val:.1f}%", va="center", ha="left" if val >= 0 else "right", fontsize=8, **ZH)
+                f"{val:.1f}%", va="center", ha="left" if val >= 0 else "right", fontsize=7, **ZH)
 
-    # 最大回撤
+    # 2. 年化收益率
     ax = axes[0][1]
-    bars = ax.barh(res_df["combo"], res_df["mdd"], color=bar_colors_mdd, edgecolor="white", linewidth=0.5)
-    ax.set_title("最大回撤(%)", fontsize=12, fontweight="bold", **ZH)
-    ax.set_xlabel("回撤(%)", **ZH)
+    bars = ax.barh(res_df["combo"], res_df["ann_return"], color=pos_neg_colors(res_df["ann_return"]), edgecolor="white", linewidth=0.5)
+    ax.set_title("年化收益率(%)", fontsize=11, fontweight="bold", **ZH)
+    ax.axvline(x=0, color="#333", linewidth=0.8)
+    for bar, val in zip(bars, res_df["ann_return"]):
+        ax.text(val + (0.3 if val >= 0 else -0.3), bar.get_y() + bar.get_height() / 2,
+                f"{val:.1f}%", va="center", ha="left" if val >= 0 else "right", fontsize=7, **ZH)
+
+    # 3. 最大回撤
+    ax = axes[0][2]
+    bars = ax.barh(res_df["combo"], res_df["mdd"], color=mdd_colors(res_df["mdd"]), edgecolor="white", linewidth=0.5)
+    ax.set_title("最大回撤(%)", fontsize=11, fontweight="bold", **ZH)
     for bar, val in zip(bars, res_df["mdd"]):
         ax.text(val - 0.5, bar.get_y() + bar.get_height() / 2,
-                f"{val:.1f}%", va="center", ha="right", fontsize=8, **ZH)
+                f"{val:.1f}%", va="center", ha="right", fontsize=7, **ZH)
 
-    # 夏普比率
+    # 4. 年化波动率
     ax = axes[1][0]
-    bar_colors_sharpe = ["#E53935" if s >= 0 else "#43A047" for s in res_df["sharpe"]]
-    bars = ax.barh(res_df["combo"], res_df["sharpe"], color=bar_colors_sharpe, edgecolor="white", linewidth=0.5)
-    ax.set_title("夏普比率", fontsize=12, fontweight="bold", **ZH)
-    ax.set_xlabel("Sharpe Ratio", **ZH)
+    bars = ax.barh(res_df["combo"], res_df["volatility"], color="#2196F3", edgecolor="white", linewidth=0.5)
+    ax.set_title("年化波动率(%)", fontsize=11, fontweight="bold", **ZH)
+    for bar, val in zip(bars, res_df["volatility"]):
+        ax.text(val + 0.3, bar.get_y() + bar.get_height() / 2,
+                f"{val:.1f}%", va="center", fontsize=7, **ZH)
+
+    # 5. 夏普比率
+    ax = axes[1][1]
+    bars = ax.barh(res_df["combo"], res_df["sharpe"], color=pos_neg_colors(res_df["sharpe"]), edgecolor="white", linewidth=0.5)
+    ax.set_title("夏普比率", fontsize=11, fontweight="bold", **ZH)
     ax.axvline(x=0, color="#333", linewidth=0.8)
     for bar, val in zip(bars, res_df["sharpe"]):
-        offset = 0.05 if val >= 0 else -0.05
+        offset = 0.04 if val >= 0 else -0.04
         ax.text(val + offset, bar.get_y() + bar.get_height() / 2,
-                f"{val:.2f}", va="center", ha="left" if val >= 0 else "right", fontsize=8, **ZH)
+                f"{val:.2f}", va="center", ha="left" if val >= 0 else "right", fontsize=7, **ZH)
 
-    # 胜率
-    ax = axes[1][1]
+    # 6. 胜率
+    ax = axes[1][2]
     bars = ax.barh(res_df["combo"], res_df["win_rate"], color="#2196F3", edgecolor="white", linewidth=0.5)
-    ax.set_title("胜率(%)", fontsize=12, fontweight="bold", **ZH)
-    ax.set_xlabel("胜率(%)", **ZH)
+    ax.set_title("胜率(%)", fontsize=11, fontweight="bold", **ZH)
     ax.set_xlim(0, 100)
     for bar, val in zip(bars, res_df["win_rate"]):
         ax.text(val + 1, bar.get_y() + bar.get_height() / 2,
-                f"{val:.0f}%", va="center", fontsize=8, **ZH)
+                f"{val:.0f}%", va="center", fontsize=7, **ZH)
+
+    # 7. 盈亏比
+    ax = axes[2][0]
+    bar_colors_plr = ["#E53935" if v >= 1 else "#FF9800" if v >= 0.5 else "#43A047" for v in res_df["plr"]]
+    bars = ax.barh(res_df["combo"], res_df["plr"], color=bar_colors_plr, edgecolor="white", linewidth=0.5)
+    ax.set_title("盈亏比", fontsize=11, fontweight="bold", **ZH)
+    ax.axvline(x=1, color="#333", linewidth=0.8, linestyle="--")
+    for bar, val in zip(bars, res_df["plr"]):
+        ax.text(val + 0.05, bar.get_y() + bar.get_height() / 2,
+                f"{val:.2f}", va="center", fontsize=7, **ZH)
+
+    # 8. 期望收益(R)
+    ax = axes[2][1]
+    bars = ax.barh(res_df["combo"], res_df["expectancy"], color=pos_neg_colors(res_df["expectancy"]), edgecolor="white", linewidth=0.5)
+    ax.set_title("期望收益(R)", fontsize=11, fontweight="bold", **ZH)
+    ax.axvline(x=0, color="#333", linewidth=0.8)
+    for bar, val in zip(bars, res_df["expectancy"]):
+        offset = 0.02 if val >= 0 else -0.02
+        ax.text(val + offset, bar.get_y() + bar.get_height() / 2,
+                f"{val:.2f}R", va="center", ha="left" if val >= 0 else "right", fontsize=7, **ZH)
+
+    # 9. 交易次数
+    ax = axes[2][2]
+    bars = ax.barh(res_df["combo"], res_df["trades"], color="#78909C", edgecolor="white", linewidth=0.5)
+    ax.set_title("交易次数", fontsize=11, fontweight="bold", **ZH)
+    for bar, val in zip(bars, res_df["trades"]):
+        ax.text(val + 0.5, bar.get_y() + bar.get_height() / 2,
+                f"{int(val)}", va="center", fontsize=7, **ZH)
 
     fig.suptitle("不同均线参数组合绩效对比", fontsize=14, fontweight="bold", **ZH)
     plt.tight_layout()
@@ -269,6 +317,8 @@ def main():
     print(res_df.to_string(index=False))
     print(f"\n最佳回报组合: MA{res_df.loc[res_df['return'].idxmax(), 'short']}/{res_df.loc[res_df['return'].idxmax(), 'long']}")
     print(f"最低回撤组合: MA{res_df.loc[res_df['mdd'].idxmax(), 'short']}/{res_df.loc[res_df['mdd'].idxmax(), 'long']}")
+    print(f"最高夏普组合: MA{res_df.loc[res_df['sharpe'].idxmax(), 'short']}/{res_df.loc[res_df['sharpe'].idxmax(), 'long']}")
+    print(f"最高盈亏比组合: MA{res_df.loc[res_df['plr'].idxmax(), 'short']}/{res_df.loc[res_df['plr'].idxmax(), 'long']}")
 
 
 if __name__ == "__main__":

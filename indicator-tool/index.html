@@ -96,6 +96,55 @@ input[type=range]::-moz-range-thumb {
 .chart-info b { color: #c9d1d9; }
 .chart-canvas-wrap { height: 100px; position: relative; }
 
+/* ===== 策略模块 ===== */
+.strategy-section {
+  margin: 10px 16px 6px; border: 0.5px solid #30363d; border-radius: 8px; overflow: hidden;
+}
+.strategy-header {
+  padding: 8px 14px; background: #161b22; border-bottom: 0.5px solid #30363d;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.strategy-header .s-title { font-weight: 600; font-size: 14px; }
+.strategy-header .s-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: #1a2332; color: #58a6ff;
+}
+.strategy-params {
+  display: flex; align-items: center; gap: 10px; margin-left: auto;
+}
+.strategy-params .slider-row { display: flex; align-items: center; gap: 6px; }
+.strategy-params .slider-row label { font-size: 11px; color: #8b949e; }
+.strategy-params .slider-row .val { font-size: 11px; font-weight: 600; min-width: 20px; text-align: right; color: #c9d1d9; }
+.strategy-params .s-btn {
+  font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+}
+.strategy-params .s-btn:hover { background: #30363d; }
+
+.strategy-charts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+}
+.s-chart-box {
+  padding: 8px 14px; border-right: 0.5px solid #30363d;
+}
+.s-chart-box:last-child { border-right: none; }
+.s-chart-label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+.s-chart-wrap { height: 140px; position: relative; }
+
+.strategy-metrics {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+  border-top: 0.5px solid #30363d; background: #0d1117;
+}
+.metric-cell {
+  padding: 8px 6px; text-align: center; border-right: 0.5px solid #30363d;
+}
+.metric-cell:last-child { border-right: none; }
+.metric-name { font-size: 10px; color: #8b949e; margin-bottom: 2px; }
+.metric-val { font-size: 14px; font-weight: 700; }
+.metric-val.pos { color: #f85149; }
+.metric-val.neg { color: #3fb950; }
+.metric-val.neutral { color: #d29922; }
+
 /* ===== 底栏状态 ===== */
 .status-bar {
   display: flex; margin: 0 16px 12px;
@@ -219,6 +268,38 @@ canvas { font-family: "Microsoft YaHei", sans-serif !important; }
   <div class="chart-side">
     <div class="chart-info" id="kdj_info">KDJ 计算中...</div>
     <div class="chart-canvas-wrap"><canvas id="kdjChart"></canvas></div>
+  </div>
+</div>
+
+<!-- 双均线策略模块 -->
+<div class="strategy-section">
+  <div class="strategy-header">
+    <span class="s-title">双均线策略</span>
+    <span class="s-tag">MA交叉 · 金叉买入 / 死叉卖出</span>
+    <div class="strategy-params">
+      <div class="slider-row"><label>短均线</label><input type="range" id="strat_short" min="2" max="30" value="5"><span class="val" id="strat_short_v">5</span></div>
+      <div class="slider-row"><label>长均线</label><input type="range" id="strat_long" min="5" max="60" value="15"><span class="val" id="strat_long_v">15</span></div>
+      <button class="s-btn" onclick="resetStrategy()">恢复默认</button>
+    </div>
+  </div>
+  <div class="strategy-charts">
+    <div class="s-chart-box">
+      <div class="s-chart-label" id="stratSignalLabel">策略信号图</div>
+      <div class="s-chart-wrap"><canvas id="stratSignalChart"></canvas></div>
+    </div>
+    <div class="s-chart-box">
+      <div class="s-chart-label" id="stratNavLabel">净值曲线 vs 基准</div>
+      <div class="s-chart-wrap"><canvas id="stratNavChart"></canvas></div>
+    </div>
+  </div>
+  <div class="strategy-metrics" id="stratMetrics">
+    <div class="metric-cell"><div class="metric-name">年化收益率</div><div class="metric-val" id="m_annReturn">-</div></div>
+    <div class="metric-cell"><div class="metric-name">最大回撤</div><div class="metric-val" id="m_mdd">-</div></div>
+    <div class="metric-cell"><div class="metric-name">年化波动率</div><div class="metric-val" id="m_vol">-</div></div>
+    <div class="metric-cell"><div class="metric-name">夏普比率</div><div class="metric-val" id="m_sharpe">-</div></div>
+    <div class="metric-cell"><div class="metric-name">胜率</div><div class="metric-val" id="m_winRate">-</div></div>
+    <div class="metric-cell"><div class="metric-name">盈亏比</div><div class="metric-val" id="m_plr">-</div></div>
+    <div class="metric-cell"><div class="metric-name">期望收益(R)</div><div class="metric-val" id="m_expR">-</div></div>
   </div>
 </div>
 
@@ -893,6 +974,271 @@ function recalcAll() {
   updateMACD(data);
   updateBOLL(data);
   updateKDJ(data);
+  updateStrategy(data);
+}
+
+// ==================== 双均线策略引擎 ====================
+const Strategy = {
+  // 计算SMA
+  sma(close, period) {
+    const n = close.length;
+    const ma = new Array(n).fill(NaN);
+    for (let i = 0; i < n; i++) {
+      if (i < period - 1) { ma[i] = NaN; continue; }
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += close[j];
+      ma[i] = sum / period;
+    }
+    // min_periods=1: 前几个用已有数据算
+    for (let i = 0; i < period - 1 && i < n; i++) {
+      let sum = 0;
+      for (let j = 0; j <= i; j++) sum += close[j];
+      ma[i] = sum / (i + 1);
+    }
+    return ma;
+  },
+
+  // 生成金叉死叉信号 + 持仓
+  signals(maShort, maLong) {
+    const n = maShort.length;
+    const signal = new Array(n).fill(0);
+    const position = new Array(n).fill(0);
+    let holding = 0;
+    for (let i = 1; i < n; i++) {
+      const prevDiff = maShort[i-1] - maLong[i-1];
+      const currDiff = maShort[i] - maLong[i];
+      if (prevDiff < 0 && currDiff > 0) { signal[i] = 1; holding = 1; }
+      else if (prevDiff > 0 && currDiff < 0) { signal[i] = -1; holding = 0; }
+      position[i] = holding;
+    }
+    return { signal, position };
+  },
+
+  // 回测 + 7项指标
+  backtest(data, shortP, longP) {
+    const close = data.map(d => d.close);
+    const n = close.length;
+    const maShort = this.sma(close, shortP);
+    const maLong = this.sma(close, longP);
+    const { signal, position } = this.signals(maShort, maLong);
+
+    // 日收益率
+    const stockReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) {
+      stockReturn[i] = (close[i] - close[i-1]) / close[i-1];
+    }
+
+    // 策略日收益率 = 前一日持仓 × 当日股票收益
+    const stratReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) {
+      stratReturn[i] = position[i-1] * stockReturn[i];
+    }
+
+    // 累计净值
+    const stratNAV = new Array(n).fill(1);
+    const benchNAV = new Array(n).fill(1);
+    for (let i = 1; i < n; i++) {
+      stratNAV[i] = stratNAV[i-1] * (1 + stratReturn[i]);
+      benchNAV[i] = benchNAV[i-1] * (1 + stockReturn[i]);
+    }
+
+    // 扣除交易成本 (佣金万分之三 + 印花税千分之一卖出方)
+    const commission = 0.0003, stampTax = 0.001;
+    let totalCost = 0;
+    const capital = 100000;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) totalCost += capital * commission;
+      else if (signal[i] === -1) totalCost += capital * (commission + stampTax);
+    }
+    const costFactor = 1 - totalCost / (capital * stratNAV[n-1]);
+    for (let i = 0; i < n; i++) stratNAV[i] *= costFactor;
+
+    // === 7项指标 ===
+    const finalNAV = stratNAV[n-1];
+    const benchFinal = benchNAV[n-1];
+    const cumulativeReturn = (finalNAV - 1) * 100;
+    const benchReturn = (benchFinal - 1) * 100;
+
+    // 最大回撤
+    let maxNAV = -Infinity, maxDD = 0, benchMaxNAV = -Infinity, benchMDD = 0;
+    const ddArr = new Array(n), benchDDArr = new Array(n);
+    for (let i = 0; i < n; i++) {
+      if (stratNAV[i] > maxNAV) maxNAV = stratNAV[i];
+      ddArr[i] = (stratNAV[i] - maxNAV) / maxNAV;
+      if (ddArr[i] < maxDD) maxDD = ddArr[i];
+      if (benchNAV[i] > benchMaxNAV) benchMaxNAV = benchNAV[i];
+      benchDDArr[i] = (benchNAV[i] - benchMaxNAV) / benchMaxNAV;
+      if (benchDDArr[i] < benchMDD) benchMDD = benchDDArr[i];
+    }
+    const mdd = maxDD * 100;
+    const benchMddPct = benchMDD * 100;
+
+    // 年化波动率
+    const tradingDays = 252;
+    const meanRet = stratReturn.reduce((a,b) => a+b, 0) / n;
+    const variance = stratReturn.reduce((a,b) => a + (b - meanRet)**2, 0) / n;
+    const dailyStd = Math.sqrt(variance);
+    const annVol = dailyStd * Math.sqrt(tradingDays) * 100;
+
+    // 基准波动率
+    const benchMean = stockReturn.reduce((a,b) => a+b, 0) / n;
+    const benchVar = stockReturn.reduce((a,b) => a + (b - benchMean)**2, 0) / n;
+    const benchVol = Math.sqrt(benchVar) * Math.sqrt(tradingDays) * 100;
+
+    // 夏普比率
+    const rf = 0.02 / tradingDays;
+    const excessMean = meanRet - rf;
+    const sharpe = dailyStd > 0 ? Math.sqrt(tradingDays) * excessMean / dailyStd : 0;
+
+    // 年化收益率
+    const annReturn = (Math.pow(finalNAV, tradingDays / n) - 1) * 100;
+
+    // 胜率 + 盈亏比 + 期望收益
+    let winCount = 0, lossCount = 0, totalTrips = 0;
+    let winProfits = [], lossAmounts = [];
+    let buyPrice = null;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) { buyPrice = close[i]; }
+      else if (signal[i] === -1 && buyPrice !== null) {
+        const ret = (close[i] - buyPrice) / buyPrice;
+        if (ret > 0) { winCount++; winProfits.push(ret); }
+        else { lossCount++; lossAmounts.push(Math.abs(ret)); }
+        totalTrips++;
+        buyPrice = null;
+      }
+    }
+    const winRate = totalTrips > 0 ? winCount / totalTrips * 100 : 0;
+    const avgWin = winProfits.length > 0 ? winProfits.reduce((a,b)=>a+b,0)/winProfits.length : 0;
+    const avgLoss = lossAmounts.length > 0 ? lossAmounts.reduce((a,b)=>a+b,0)/lossAmounts.length : 0;
+    const plr = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const expR = avgLoss > 0 ? (winCount * avgWin - lossCount * avgLoss) / (totalTrips * avgLoss) : 0;
+
+    // 买卖信号点
+    const buyPoints = [], sellPoints = [];
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) buyPoints.push({ idx: i, price: close[i] });
+      else if (signal[i] === -1) sellPoints.push({ idx: i, price: close[i] });
+    }
+
+    return {
+      close, maShort, maLong, signal, position,
+      stratNAV, benchNAV, ddArr, benchDDArr,
+      buyPoints, sellPoints,
+      metrics: { cumulativeReturn, benchReturn, annReturn, mdd, benchMddPct,
+                 annVol, benchVol, sharpe, winRate, plr, expR,
+                 nTrades: buyPoints.length + sellPoints.length,
+                 buyCount: buyPoints.length, sellCount: sellPoints.length, totalTrips }
+    };
+  }
+};
+
+// ==================== 策略图表初始化 ====================
+function initStrategyCharts() {
+  // 信号图
+  charts.stratSignal = new Chart(document.getElementById('stratSignalChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA短', data: [], borderColor: '#FF9800', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA长', data: [], borderColor: '#9C27B0', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '买入', data: [], borderColor: '#f85149', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+      { label: '卖出', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 5, pointStyle: 'crossRot', showLine: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+
+  // 净值图
+  charts.stratNav = new Chart(document.getElementById('stratNavChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: '策略净值', data: [], borderColor: '#f85149', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '基准净值', data: [], borderColor: '#78909C', borderWidth: 1, borderDash: [4,2], pointRadius: 0, fill: false, tension: 0.1 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+}
+
+// ==================== 策略更新 ====================
+function updateStrategy(data) {
+  const shortP = parseInt(document.getElementById('strat_short').value);
+  const longP = parseInt(document.getElementById('strat_long').value);
+  const labels = data.map(d => d.dateLabel);
+  const result = Strategy.backtest(data, shortP, longP);
+  const m = result.metrics;
+
+  // 信号图
+  charts.stratSignal.data.labels = labels;
+  charts.stratSignal.data.datasets[0].data = result.close;
+  charts.stratSignal.data.datasets[1].data = result.maShort;
+  charts.stratSignal.data.datasets[2].data = result.maLong;
+  // 买卖点：用稀疏数组
+  const buyArr = new Array(data.length).fill(null);
+  const sellArr = new Array(data.length).fill(null);
+  result.buyPoints.forEach(p => buyArr[p.idx] = p.price);
+  result.sellPoints.forEach(p => sellArr[p.idx] = p.price);
+  charts.stratSignal.data.datasets[3].data = buyArr;
+  charts.stratSignal.data.datasets[4].data = sellArr;
+  charts.stratSignal.update('none');
+
+  document.getElementById('stratSignalLabel').innerHTML =
+    `MA${shortP}/${longP} 信号 · <b style="color:#f85149">▲买入${m.buyCount}</b> · <b style="color:#3fb950">✕卖出${m.sellCount}</b> · 累计回报 <b>${m.cumulativeReturn >= 0 ? '+' : ''}${m.cumulativeReturn.toFixed(2)}%</b>`;
+
+  // 净值图
+  charts.stratNav.data.labels = labels;
+  charts.stratNav.data.datasets[0].data = result.stratNAV;
+  charts.stratNav.data.datasets[1].data = result.benchNAV;
+  charts.stratNav.update('none');
+
+  document.getElementById('stratNavLabel').innerHTML =
+    `策略净值 <b style="color:#f85149">${result.stratNAV[data.length-1].toFixed(3)}</b> vs 基准 <b style="color:#78909C">${result.benchNAV[data.length-1].toFixed(3)}</b>`;
+
+  // 7项指标面板
+  const setMetric = (id, val, fmt, posGood) => {
+    const el = document.getElementById(id);
+    el.textContent = fmt(val);
+    el.className = 'metric-val ' + (val > 0 ? (posGood ? 'pos' : 'neg') : val < 0 ? (posGood ? 'neg' : 'pos') : 'neutral');
+  };
+
+  // 年化收益率: 正红负绿
+  setMetric('m_annReturn', m.annReturn, v => (v >= 0 ? '+' : '') + v.toFixed(2) + '%', true);
+  // 最大回撤: 越小越好(接近0)，显示负值，绿色好红色差
+  const mddEl = document.getElementById('m_mdd');
+  mddEl.textContent = m.mdd.toFixed(2) + '%';
+  mddEl.className = 'metric-val ' + (m.mdd >= -10 ? 'pos' : m.mdd >= -20 ? 'neutral' : 'neg');
+  // 波动率
+  const volEl = document.getElementById('m_vol');
+  volEl.textContent = m.annVol.toFixed(2) + '%';
+  volEl.className = 'metric-val ' + (m.annVol <= 15 ? 'pos' : m.annVol <= 25 ? 'neutral' : 'neg');
+  // 夏普
+  setMetric('m_sharpe', m.sharpe, v => v.toFixed(3), true);
+  // 胜率
+  const wrEl = document.getElementById('m_winRate');
+  wrEl.textContent = m.winRate.toFixed(1) + '%';
+  wrEl.className = 'metric-val ' + (m.winRate >= 50 ? 'pos' : m.winRate >= 30 ? 'neutral' : 'neg');
+  // 盈亏比
+  const plrEl = document.getElementById('m_plr');
+  plrEl.textContent = m.plr.toFixed(2);
+  plrEl.className = 'metric-val ' + (m.plr >= 2 ? 'pos' : m.plr >= 1 ? 'neutral' : 'neg');
+  // 期望收益R
+  setMetric('m_expR', m.expR, v => (v >= 0 ? '+' : '') + v.toFixed(3) + 'R', true);
+}
+
+function resetStrategy() {
+  document.getElementById('strat_short').value = 5;
+  document.getElementById('strat_long').value = 15;
+  document.getElementById('strat_short_v').textContent = '5';
+  document.getElementById('strat_long_v').textContent = '15';
+  updateStrategy(getVisibleData());
 }
 
 // 滑块值显示
@@ -995,9 +1341,20 @@ window.addEventListener('DOMContentLoaded', () => {
   bindSlider('kdj_m1', 'kdj_m1_v');
   bindSlider('kdj_m2', 'kdj_m2_v');
 
+  // 策略滑块
+  document.getElementById('strat_short').addEventListener('input', () => {
+    document.getElementById('strat_short_v').textContent = document.getElementById('strat_short').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('strat_long').addEventListener('input', () => {
+    document.getElementById('strat_long_v').textContent = document.getElementById('strat_long').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+
   // 解析数据 & 初始化图表
   rawData = parseCSV(EMBEDDED_CSV);
   initCharts();
+  initStrategyCharts();
   recalcAll();
 });
 </script>

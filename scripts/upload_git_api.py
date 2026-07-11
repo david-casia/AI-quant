@@ -136,7 +136,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "新增TASK3: 双均线策略开发与回测\n\n- strategy.py: 双均线策略引擎(信号+回测+绩效指标)\n- plot_strategy.py: 3张可视化图(信号图/净值回撤/参数对比)\n- 10组均线参数对比测试(MA3/5~MA20/60)\n- PDF报告: 理论+指标解释+回测分析\n- index.html: 新增TASK3入口卡片",
+        "message": "TASK3指标扩充7项+HTML工具融入双均线策略\n\n- strategy.py: 新增年化波动率/盈亏比/期望收益R, 共7项核心指标\n- plot_strategy.py: 参数对比图升级为3x3(9子图)\n- content.py: Q2重写, 覆盖7项指标完整理论解释\n- build_pdf.py: 分析文本/表格/参数分析全部更新为7指标版本\n- indicator-tool/index.html: 融入双均线策略模块(信号图+净值图+7指标实时面板)\n- index.html: 新增TASK3入口卡片+前复权文案更新",
         "tree": new_tree_sha,
     }
     if parent_sha:

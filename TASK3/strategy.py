@@ -137,13 +137,14 @@ def backtest(df, initial_capital=INITIAL_CAPITAL,
 
 def calc_metrics(df, risk_free_annual=RISK_FREE_ANNUAL):
     """
-    计算策略绩效指标：
-    - 累计回报率 (Cumulative Return)
-    - 最大回撤 (Maximum Drawdown, MDD)
-    - 夏普比率 (Sharpe Ratio) - 年化
-    - 年化收益率
-    - 交易次数
-    - 胜率
+    计算策略绩效指标（7项核心指标）：
+    1. 年化收益率 (Annualized Return)
+    2. 最大回撤 (Maximum Drawdown, MDD)
+    3. 年化波动率 (Annualized Volatility)
+    4. 夏普比率 (Sharpe Ratio) - 年化
+    5. 胜率 (Win Rate)
+    6. 盈亏比 (Profit/Loss Ratio)
+    7. 期望收益 (Expectancy, R)
     """
     # 策略累计回报
     final_nav = df["strategy_nav"].iloc[-1]
@@ -162,6 +163,14 @@ def calc_metrics(df, risk_free_annual=RISK_FREE_ANNUAL):
     bench_running_max = df["benchmark_nav"].cummax()
     bench_drawdown = (df["benchmark_nav"] - bench_running_max) / bench_running_max
     bench_mdd = bench_drawdown.min() * 100
+
+    # 年化波动率 = 日收益率标准差 × sqrt(252)
+    daily_std = df["strategy_return"].std()
+    ann_volatility = daily_std * np.sqrt(TRADING_DAYS_PER_YEAR) * 100
+
+    # 基准年化波动率
+    bench_daily_std = df["benchmark_return"].std()
+    bench_volatility = bench_daily_std * np.sqrt(TRADING_DAYS_PER_YEAR) * 100
 
     # 日均超额收益
     daily_rf = risk_free_annual / TRADING_DAYS_PER_YEAR
@@ -184,39 +193,63 @@ def calc_metrics(df, risk_free_annual=RISK_FREE_ANNUAL):
     n_days = len(df)
     ann_return = (final_nav ** (TRADING_DAYS_PER_YEAR / n_days) - 1) * 100
 
-    # 交易统计
+    # 交易统计 + 胜率 + 盈亏比 + 期望收益
     trades = df[df["signal"] != 0]
     n_trades = len(trades)
     buy_signals = (df["signal"] == 1).sum()
     sell_signals = (df["signal"] == -1).sum()
 
-    # 胜率：每次完整交易（买入→卖出）的收益为正的比例
     win_count = 0
+    loss_count = 0
     total_round_trips = 0
+    win_profits = []   # 盈利交易的收益率
+    loss_amounts = []   # 亏损交易的收益率（绝对值）
     buy_price = None
+
     for idx, row in df.iterrows():
         if row["signal"] == 1:
             buy_price = row["close"]
         elif row["signal"] == -1 and buy_price is not None:
-            if row["close"] > buy_price:
+            trade_return = (row["close"] - buy_price) / buy_price
+            if trade_return > 0:
                 win_count += 1
+                win_profits.append(trade_return)
+            else:
+                loss_count += 1
+                loss_amounts.append(abs(trade_return))
             total_round_trips += 1
             buy_price = None
 
     win_rate = (win_count / total_round_trips * 100) if total_round_trips > 0 else 0.0
+    loss_rate = 100 - win_rate
+
+    # 盈亏比 = 平均盈利 / 平均亏损
+    avg_win = np.mean(win_profits) if win_profits else 0.0
+    avg_loss = np.mean(loss_amounts) if loss_amounts else 0.0
+    profit_loss_ratio = (avg_win / avg_loss) if avg_loss > 0 else 0.0
+
+    # 期望收益 R = 胜率 × 平均盈利 - 败率 × 平均亏损（以R为单位，1R=平均亏损）
+    if avg_loss > 0:
+        expectancy_r = (win_count * avg_win - loss_count * avg_loss) / (total_round_trips * avg_loss)
+    else:
+        expectancy_r = 0.0
 
     metrics = {
         "cumulative_return": cumulative_return,
         "benchmark_return": benchmark_return,
+        "ann_return": ann_return,
         "max_drawdown": max_drawdown,
         "benchmark_mdd": bench_mdd,
+        "ann_volatility": ann_volatility,
+        "benchmark_volatility": bench_volatility,
         "sharpe": sharpe,
         "benchmark_sharpe": bench_sharpe,
-        "ann_return": ann_return,
+        "win_rate": win_rate,
+        "profit_loss_ratio": profit_loss_ratio,
+        "expectancy_r": expectancy_r,
         "n_trades": n_trades,
         "buy_signals": int(buy_signals),
         "sell_signals": int(sell_signals),
-        "win_rate": win_rate,
         "total_round_trips": total_round_trips,
         "final_nav": final_nav,
     }
@@ -250,18 +283,23 @@ def main():
 
     df, m = run_strategy()
 
-    print(f"\n--- 策略绩效 ---")
-    print(f"  累计回报率:   {m['cumulative_return']:+.2f}%")
-    print(f"  基准(买入持有): {m['benchmark_return']:+.2f}%")
-    print(f"  最大回撤(MDD): {m['max_drawdown']:.2f}%")
-    print(f"  基准MDD:      {m['benchmark_mdd']:.2f}%")
-    print(f"  夏普比率:     {m['sharpe']:.3f}")
-    print(f"  基准夏普:     {m['benchmark_sharpe']:.3f}")
-    print(f"  年化收益率:   {m['ann_return']:+.2f}%")
-    print(f"  交易次数:     {m['n_trades']} (买{m['buy_signals']}/卖{m['sell_signals']})")
-    print(f"  完整交易轮数: {m['total_round_trips']}")
-    print(f"  胜率:         {m['win_rate']:.1f}%")
-    print(f"  期末净值:     {m['final_nav']:.4f}")
+    print(f"\n--- 策略绩效（7项核心指标）---")
+    print(f"  1. 年化收益率:    {m['ann_return']:+.2f}%")
+    print(f"  2. 最大回撤(MDD): {m['max_drawdown']:.2f}%")
+    print(f"  3. 年化波动率:    {m['ann_volatility']:.2f}%")
+    print(f"  4. 夏普比率:      {m['sharpe']:.3f}")
+    print(f"  5. 胜率:          {m['win_rate']:.1f}%")
+    print(f"  6. 盈亏比:        {m['profit_loss_ratio']:.2f}")
+    print(f"  7. 期望收益(R):   {m['expectancy_r']:.3f}R")
+    print(f"\n--- 对比基准(买入持有) ---")
+    print(f"  基准累计回报:    {m['benchmark_return']:+.2f}%")
+    print(f"  基准最大回撤:    {m['benchmark_mdd']:.2f}%")
+    print(f"  基准年化波动率:  {m['benchmark_volatility']:.2f}%")
+    print(f"  基准夏普比率:    {m['benchmark_sharpe']:.3f}")
+    print(f"\n--- 交易统计 ---")
+    print(f"  交易次数:        {m['n_trades']} (买{m['buy_signals']}/卖{m['sell_signals']})")
+    print(f"  完整交易轮数:    {m['total_round_trips']}")
+    print(f"  期末净值:        {m['final_nav']:.4f}")
 
     # 输出交易明细
     trades = df[df["signal"] != 0][["trade_date", "close", "ma_short", "ma_long", "signal"]]

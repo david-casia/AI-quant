@@ -75,46 +75,60 @@ def build_strategy_analysis():
 
     analysis = f"""以比亚迪(002594.SZ)从{first_date}至{last_date}共{total_days}个交易日的前复权日线数据为研究对象，采用MA{DEFAULT_SHORT}/MA{DEFAULT_LONG}双均线策略进行模拟回测。初始资金设为{INITIAL_CAPITAL:,.0f}元，交易成本考虑佣金（万分之{COMMISSION_RATE*10000:.0f}）和印花税（卖出方千分之{STAMP_TAX_RATE*1000:.0f}）。
 
-回测结果显示，策略在考察期内共产生{m["n_trades"]}次交易信号，其中买入信号{m["buy_signals"]}次（金叉），卖出信号{m["sell_signals"]}次（死叉），完整交易轮数为{m["total_round_trips"]}轮，胜率为{m["win_rate"]:.1f}%。策略期末累计回报率为{m["cumulative_return"]:+.2f}%，同期买入持有基准的累计回报率为{m["benchmark_return"]:+.2f}%，超额收益为{alpha:+.2f}%，{perf_eval}。
+回测结果显示，策略在考察期内共产生{m["n_trades"]}次交易信号，其中买入信号{m["buy_signals"]}次（金叉），卖出信号{m["sell_signals"]}次（死叉），完整交易轮数为{m["total_round_trips"]}轮。七项核心绩效指标如下：年化收益率为{m["ann_return"]:+.2f}%，最大回撤为{m["max_drawdown"]:.2f}%，年化波动率为{m["ann_volatility"]:.2f}%，夏普比率为{m["sharpe"]:.3f}，胜率为{m["win_rate"]:.1f}%，盈亏比为{m["profit_loss_ratio"]:.2f}，期望收益为{m["expectancy_r"]:.3f}R。同期买入持有基准的累计回报为{m["benchmark_return"]:+.2f}%，最大回撤为{m["benchmark_mdd"]:.2f}%，年化波动率为{m["benchmark_volatility"]:.2f}%，夏普比率为{m["benchmark_sharpe"]:.3f}。
 
-在风险方面，策略最大回撤为{m["max_drawdown"]:.2f}%，基准最大回撤为{m["benchmark_mdd"]:.2f}%，{risk_eval}。策略的夏普比率为{m["sharpe"]:.3f}，基准夏普比率为{m["benchmark_sharpe"]:.3f}，年化收益率为{m["ann_return"]:+.2f}%。胜率方面，{m["win_rate"]:.1f}%的完整交易实现了盈利，反映在震荡行情中均线交叉信号的可靠性有限。
+从收益维度看，策略累计回报率为{m["cumulative_return"]:+.2f}%，{perf_eval}，超额收益为{alpha:+.2f}%。年化收益率为{m["ann_return"]:+.2f}%，虽然为负，但优于基准的同期年化表现。
 
-综合来看，在MA{DEFAULT_SHORT}/MA{DEFAULT_LONG}参数下，双均线策略在比亚迪这一年震荡下行的行情中表现中规中矩。虽然累计回报为负，但相比买入持有基准，策略在一定程度上控制了最大回撤，体现了趋势跟踪策略"截断亏损、让利润奔跑"的基本理念。但较低的胜率和夏普比率也暴露了均线策略在震荡市中的固有弱点：频繁的虚假交叉信号会导致连续的小额亏损，侵蚀策略整体收益。"""
+从风险维度看，{risk_eval}。年化波动率为{m["ann_volatility"]:.2f}%，低于基准的{m["benchmark_volatility"]:.2f}%，说明策略通过择时降低了收益的波动幅度。夏普比率为{m["sharpe"]:.3f}，基准夏普为{m["benchmark_sharpe"]:.3f}，两者均为负值，反映了在考察期内该股票整体处于下行趋势。
+
+从交易质量维度看，胜率为{m["win_rate"]:.1f}%，盈亏比为{m["profit_loss_ratio"]:.2f}，期望收益为{m["expectancy_r"]:.3f}R。胜率较低说明在震荡行情中金叉死叉信号的可靠性有限，但盈亏比达到{m["profit_loss_ratio"]:.2f}，意味着盈利交易的平均收益是亏损交易的{m["profit_loss_ratio"]:.2f}倍。期望收益为{m["expectancy_r"]:.3f}R（负值），表明在当前参数和市场环境下，策略长期运行将产生亏损，需要进一步优化参数或增加过滤条件。
+
+综合来看，在MA{DEFAULT_SHORT}/MA{DEFAULT_LONG}参数下，双均线策略在比亚迪这一年震荡下行的行情中表现中规中矩。策略在控制最大回撤和波动率方面优于买入持有基准，但较低的胜率和负的期望收益暴露了均线策略在震荡市中的固有弱点：频繁的虚假交叉信号导致连续的小额亏损，侵蚀策略整体收益。投资者在使用双均线策略时，应结合趋势判断指标过滤虚假信号，或在明确的趋势行情中才启用该策略。"""
 
     return analysis.strip(), m
 
 
 def build_param_analysis(res_df):
-    """参数对比分析文字"""
+    """参数对比分析文字（7项指标）"""
     best_return = res_df.loc[res_df["return"].idxmax()]
-    best_mdd = res_df.loc[res_df["mdd"].idxmax()]  # idxmax对负数取最大(最接近0)
+    best_ann = res_df.loc[res_df["ann_return"].idxmax()]
+    best_mdd = res_df.loc[res_df["mdd"].idxmax()]
     best_sharpe = res_df.loc[res_df["sharpe"].idxmax()]
     best_win = res_df.loc[res_df["win_rate"].idxmax()]
+    best_plr = res_df.loc[res_df["plr"].idxmax()]
+    best_exp = res_df.loc[res_df["expectancy"].idxmax()]
+
+    worst_return = res_df.loc[res_df["return"].idxmin()]
 
     analysis = f"""为了探索不同均线参数组合对策略表现的影响，本任务选取了10组典型的短长均线组合进行对比测试，包括MA3/5、MA3/10、MA5/10、MA5/15、MA5/20、MA5/30、MA10/20、MA10/30、MA10/60和MA20/60。
 
-从累计回报率来看，表现最佳的参数组合为MA{int(best_return['short'])}/MA{int(best_return['long'])}，累计回报率为{best_return['return']:.2f}%；表现最差的组合为MA5/20，累计回报率达-24.78%。最大回撤方面，MA{int(best_mdd['short'])}/MA{int(best_mdd['long'])}组合的最大回撤最浅，为{best_mdd['mdd']:.2f}%；而MA5/20组合的回撤最深，达-25.10%。
+从收益维度看，累计回报率表现最佳的参数组合为MA{int(best_return['short'])}/MA{int(best_return['long'])}，累计回报率为{best_return['return']:.2f}%，年化收益率为{best_return['ann_return']:.2f}%；表现最差的组合为MA{int(worst_return['short'])}/MA{int(worst_return['long'])}，累计回报率为{worst_return['return']:.2f}%。最大回撤方面，MA{int(best_mdd['short'])}/MA{int(best_mdd['long'])}组合的最大回撤最浅，为{best_mdd['mdd']:.2f}%。
 
-从夏普比率来看，MA{int(best_sharpe['short'])}/MA{int(best_sharpe['long'])}组合的夏普比率最高，为{best_sharpe['sharpe']:.3f}。胜率方面，MA{int(best_win['short'])}/MA{int(best_win['long'])}组合以{best_win['win_rate']:.1f}%的胜率领先。
+从风险调整维度看，MA{int(best_sharpe['short'])}/MA{int(best_sharpe['long'])}组合的夏普比率最高，为{best_sharpe['sharpe']:.3f}。年化波动率方面，短线组合（如MA3/5）的波动率普遍低于长线组合，这是因为短线策略空仓时间更长，降低了组合波动。
 
-整体观察可以发现以下规律：第一，短周期参数组合（如MA3/5）的交易频率更高，在快速变化的行情中反应更灵敏，但手续费成本也更高；第二，长周期参数组合（如MA20/60）交易次数少，信号更稳定，但对趋势变化的反应滞后；第三，在比亚迪这一年的震荡行情中，多数参数组合的累计回报为负，说明双均线策略本质上是一种趋势跟踪策略，在缺乏明确趋势的市场环境中难以发挥优势。投资者在使用双均线策略时，应首先判断市场处于趋势市还是震荡市，在趋势明确时使用较长周期的均线组合，在波动较大的短线环境中可适当缩短均线周期，但需控制交易频率以降低成本侵蚀。"""
+从交易质量维度看，MA{int(best_win['short'])}/MA{int(best_win['long'])}组合以{best_win['win_rate']:.1f}%的胜率领先。盈亏比方面，MA{int(best_plr['short'])}/MA{int(best_plr['long'])}组合的盈亏比最高，为{best_plr['plr']:.2f}。期望收益方面，MA{int(best_exp['short'])}/MA{int(best_exp['long'])}组合的期望收益最高，为{best_exp['expectancy']:.3f}R。
+
+整体观察可以发现以下规律：第一，短周期参数组合（如MA3/5）的交易频率更高，在快速变化的行情中反应更灵敏，胜率相对较高，但手续费成本也更高；第二，长周期参数组合（如MA20/60）交易次数少，信号更稳定，但对趋势变化的反应滞后；第三，在比亚迪这一年的震荡行情中，多数参数组合的累计回报和期望收益为负，说明双均线策略本质上是一种趋势跟踪策略，在缺乏明确趋势的市场环境中难以发挥优势。投资者在使用双均线策略时，应首先判断市场处于趋势市还是震荡市，在趋势明确时使用较长周期的均线组合，在波动较大的短线环境中可适当缩短均线周期，但需控制交易频率以降低成本侵蚀。同时，盈亏比和期望收益(R)是评估策略长期可行性的关键指标——只有期望收益为正的策略才值得长期执行。"""
 
     return analysis.strip()
 
 
 def build_param_table(res_df):
-    """参数对比表格"""
+    """参数对比表格（7项指标）"""
     html = '<table class="data">\n'
-    html += '<caption>表1 不同均线参数组合策略绩效对比</caption>\n'
-    html += '<thead><tr><th>参数组合</th><th>累计回报(%)</th><th>最大回撤(%)</th><th>夏普比率</th><th>交易次数</th><th>胜率(%)</th></tr></thead>\n<tbody>\n'
+    html += '<caption>表1 不同均线参数组合策略绩效对比（7项核心指标）</caption>\n'
+    html += '<thead><tr><th>参数</th><th>年化收益(%)</th><th>最大回撤(%)</th><th>波动率(%)</th><th>夏普</th><th>胜率(%)</th><th>盈亏比</th><th>期望R</th><th>交易数</th></tr></thead>\n<tbody>\n'
 
     for _, row in res_df.iterrows():
         html += f"<tr><td>{row['combo']}</td>"
-        html += f"<td>{row['return']:+.2f}</td>"
+        html += f"<td>{row['ann_return']:+.2f}</td>"
         html += f"<td>{row['mdd']:.2f}</td>"
+        html += f"<td>{row['volatility']:.2f}</td>"
         html += f"<td>{row['sharpe']:.3f}</td>"
-        html += f"<td>{int(row['trades'])}</td>"
-        html += f"<td>{row['win_rate']:.1f}</td></tr>\n"
+        html += f"<td>{row['win_rate']:.1f}</td>"
+        html += f"<td>{row['plr']:.2f}</td>"
+        html += f"<td>{row['expectancy']:.3f}</td>"
+        html += f"<td>{int(row['trades'])}</td></tr>\n"
 
     html += "</tbody></table>\n"
     return html
@@ -145,10 +159,14 @@ def build_html():
             "combo": f"MA{short}/{long}",
             "short": short, "long": long,
             "return": met["cumulative_return"],
+            "ann_return": met["ann_return"],
             "mdd": met["max_drawdown"],
+            "volatility": met["ann_volatility"],
             "sharpe": met["sharpe"],
             "trades": met["n_trades"],
             "win_rate": met["win_rate"],
+            "plr": met["profit_loss_ratio"],
+            "expectancy": met["expectancy_r"],
         })
     res_df = pd.DataFrame(results)
 

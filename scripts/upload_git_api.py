@@ -71,6 +71,19 @@ FILES = [
     "TASK4/002594_param_comparison.png",
     "TASK4/薛德刚+TASK4.html",
     "TASK4/薛德刚+TASK4.pdf",
+    "TASK5/ml_model.py",
+    "TASK5/plot_ml.py",
+    "TASK5/build_pdf.py",
+    "TASK5/content.py",
+    "TASK5/style.css",
+    "TASK5/002594_daily.csv",
+    "TASK5/cancer_roc.png",
+    "TASK5/cancer_confusion.png",
+    "TASK5/stock_roc.png",
+    "TASK5/stock_confusion.png",
+    "TASK5/stock_feature_importance.png",
+    "TASK5/薛德刚+TASK5.html",
+    "TASK5/薛德刚+TASK5.pdf",
     "indicator-tool/index.html",
     "docs/indicator_tool_design.md",
 ]
@@ -147,7 +160,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "HTML工具升级: 策略可切换+实时数据获取\n\n- 策略选择器: 双均线/海龟策略下拉切换, 参数面板自动切换\n- 海龟策略JS引擎: 唐奇安通道+ATR+突破信号+ATR动态止损+跟踪止损\n- 实时数据: 东方财富JSONP API(push2his), 输入任意A股代码获取日线\n- 复权方式可选: 前复权/不复权/后复权\n- Bug修复: push2→push2his(历史K线接口), HTTP替代HTTPS",
+        "message": "新增TASK5: 机器学习分类模型+HTML工具升级\n\n- TASK5: 逻辑回归/决策树/随机森林三模型对比\n- 双数据集: 乳腺癌(AUC 0.94~0.998) + 比亚迪股票收益(AUC 0.46~0.63)\n- 5张图: 2xROC曲线 + 2x混淆矩阵 + 特征重要性\n- HTML工具: 策略可切换(双均线/海龟) + 实时数据(东方财富JSONP)\n- Bug修复: push2→push2his历史K线接口",
         "tree": new_tree_sha,
     }
     if parent_sha:

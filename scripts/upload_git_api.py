@@ -84,6 +84,18 @@ FILES = [
     "TASK5/stock_feature_importance.png",
     "TASK5/薛德刚+TASK5.html",
     "TASK5/薛德刚+TASK5.pdf",
+    "TASK6/fetch_multi_stocks.py",
+    "TASK6/ml_strategy.py",
+    "TASK6/plot_ml_strategy.py",
+    "TASK6/build_pdf.py",
+    "TASK6/content.py",
+    "TASK6/style.css",
+    "TASK6/quarterly_returns.png",
+    "TASK6/nav_curves.png",
+    "TASK6/feature_importance.png",
+    "TASK6/performance_comparison.png",
+    "TASK6/薛德刚+TASK6.html",
+    "TASK6/薛德刚+TASK6.pdf",
     "indicator-tool/index.html",
     "docs/indicator_tool_design.md",
 ]
@@ -160,7 +172,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "新增TASK5: 机器学习分类模型+HTML工具升级\n\n- TASK5: 逻辑回归/决策树/随机森林三模型对比\n- 双数据集: 乳腺癌(AUC 0.94~0.998) + 比亚迪股票收益(AUC 0.46~0.63)\n- 5张图: 2xROC曲线 + 2x混淆矩阵 + 特征重要性\n- HTML工具: 策略可切换(双均线/海龟) + 实时数据(东方财富JSONP)\n- Bug修复: push2→push2his历史K线接口",
+        "message": "新增TASK6: 机器学习选股策略+TASK5+HTML工具升级\n\n- TASK6: 48只A股季度选股, 12因子+3模型(线性回归/决策树/随机森林)\n- 决策树最优: 累计+5.61% vs 基准-16.68%, 胜率61.5%, alpha+22.29%\n- 4张图: 季度收益/累计净值/因子重要性/绩效对比\n- TASK5: 机器学习分类模型(乳腺癌+股票收益数据集)\n- HTML工具: 策略可切换+实时数据(东方财富JSONP)\n- GitHub已同步",
         "tree": new_tree_sha,
     }
     if parent_sha:

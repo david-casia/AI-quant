@@ -147,7 +147,7 @@ def main():
     # 4. 创建 commit
     print(f"\n[4] 创建 commit...")
     commit_data = {
-        "message": "新增TASK4: 海龟策略(唐奇安通道+ATR止损)开发与回测\n\n- strategy.py: 唐奇安通道突破信号 + ATR动态止损 + 跟踪止损 + 7项指标\n- plot_strategy.py: 3张图(通道信号图/净值回撤/10组参数对比)\n- 10组参数测试(DC10/5~DC55/20, 止损1~3xATR)\n- DC30/15最优: 正收益+2.63%, MDD仅-5.56%\n- PDF报告: 海龟理论+通道/ATR/止损解释+回测分析\n- index.html: 新增TASK4入口卡片",
+        "message": "HTML工具升级: 策略可切换+实时数据获取\n\n- 策略选择器: 双均线/海龟策略下拉切换, 参数面板自动切换\n- 海龟策略JS引擎: 唐奇安通道+ATR+突破信号+ATR动态止损+跟踪止损\n- 实时数据: 东方财富JSONP API(push2his), 输入任意A股代码获取日线\n- 复权方式可选: 前复权/不复权/后复权\n- Bug修复: push2→push2his(历史K线接口), HTTP替代HTTPS",
         "tree": new_tree_sha,
     }
     if parent_sha:

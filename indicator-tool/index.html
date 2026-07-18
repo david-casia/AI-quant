@@ -109,8 +109,12 @@ input[type=range]::-moz-range-thumb {
   font-size: 10px; padding: 1px 6px; border-radius: 3px;
   background: #1a2332; color: #58a6ff;
 }
+.strategy-header .strat-select {
+  font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+}
 .strategy-params {
-  display: flex; align-items: center; gap: 10px; margin-left: auto;
+  display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;
 }
 .strategy-params .slider-row { display: flex; align-items: center; gap: 6px; }
 .strategy-params .slider-row label { font-size: 11px; color: #8b949e; }
@@ -120,6 +124,10 @@ input[type=range]::-moz-range-thumb {
   border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
 }
 .strategy-params .s-btn:hover { background: #30363d; }
+.strat-ma-only { display: none; }
+.strat-turtle-only { display: none; }
+.strat-ma-only.active { display: flex; }
+.strat-turtle-only.active { display: flex; }
 
 .strategy-charts {
   display: grid; grid-template-columns: 1fr 1fr; gap: 0;
@@ -160,6 +168,22 @@ input[type=range]::-moz-range-thumb {
 
 /* ===== Chart.js 主题覆盖 ===== */
 canvas { font-family: "Microsoft YaHei", sans-serif !important; }
+
+/* ===== 实时数据 ===== */
+.fetch-btn {
+  font-size: 12px; padding: 4px 12px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #f0883e; background: #1a2332; color: #f0883e;
+  font-weight: 600; transition: all 0.2s;
+}
+.fetch-btn:hover { background: #2d1a0e; }
+.fetch-btn:disabled { opacity: 0.5; cursor: wait; }
+#stockCode { cursor: text; }
+.fetch-status {
+  font-size: 11px; color: #8b949e; margin-left: 4px;
+}
+.fetch-status.ok { color: #3fb950; }
+.fetch-status.err { color: #f85149; }
+.fetch-status.loading { color: #d29922; }
 </style>
 </head>
 <body>
@@ -168,7 +192,9 @@ canvas { font-family: "Microsoft YaHei", sans-serif !important; }
 <div class="topbar">
   <span class="title">股票技术指标分析工具</span>
   <span class="spacer"></span>
-  <input type="text" id="stockCode" value="002594.SZ" readonly>
+  <input type="text" id="stockCode" value="002594.SZ" placeholder="输入股票代码" onkeydown="if(event.key==='Enter')fetchStockData()">
+  <button class="fetch-btn" id="fetchBtn" onclick="fetchStockData()">获取实时数据</button>
+  <span class="fetch-status" id="fetchStatus"></span>
   <select id="dateRange">
     <option value="30">近1月</option>
     <option value="90">近3月</option>
@@ -176,8 +202,10 @@ canvas { font-family: "Microsoft YaHei", sans-serif !important; }
     <option value="365" selected>近1年</option>
     <option value="9999">全部</option>
   </select>
-  <select id="adjType">
+  <select id="adjType" onchange="if(rawData.length>0&&rawDataSource==='api')fetchStockData()">
     <option value="qfq" selected>前复权</option>
+    <option value="none">不复权</option>
+    <option value="hfq">后复权</option>
   </select>
   <label class="file-btn">
     <button type="button">导入CSV</button>
@@ -271,14 +299,28 @@ canvas { font-family: "Microsoft YaHei", sans-serif !important; }
   </div>
 </div>
 
-<!-- 双均线策略模块 -->
+<!-- 策略模块 -->
 <div class="strategy-section">
   <div class="strategy-header">
-    <span class="s-title">双均线策略</span>
-    <span class="s-tag">MA交叉 · 金叉买入 / 死叉卖出</span>
+    <span class="s-title">交易策略</span>
+    <select class="strat-select" id="stratType" onchange="switchStrategy()">
+      <option value="ma">双均线策略</option>
+      <option value="turtle">海龟策略</option>
+    </select>
+    <span class="s-tag" id="stratTag">MA交叉 · 金叉买入 / 死叉卖出</span>
     <div class="strategy-params">
-      <div class="slider-row"><label>短均线</label><input type="range" id="strat_short" min="2" max="30" value="5"><span class="val" id="strat_short_v">5</span></div>
-      <div class="slider-row"><label>长均线</label><input type="range" id="strat_long" min="5" max="60" value="15"><span class="val" id="strat_long_v">15</span></div>
+      <!-- 双均线参数 -->
+      <div class="slider-row strat-ma-only active" id="maParams">
+        <label>短均线</label><input type="range" id="strat_short" min="2" max="30" value="5"><span class="val" id="strat_short_v">5</span>
+        <label>长均线</label><input type="range" id="strat_long" min="5" max="60" value="15"><span class="val" id="strat_long_v">15</span>
+      </div>
+      <!-- 海龟参数 -->
+      <div class="slider-row strat-turtle-only" id="turtleParams">
+        <label>入场通道</label><input type="range" id="turtle_entry" min="5" max="55" value="20"><span class="val" id="turtle_entry_v">20</span>
+        <label>出场通道</label><input type="range" id="turtle_exit" min="3" max="30" value="10"><span class="val" id="turtle_exit_v">10</span>
+        <label>ATR周期</label><input type="range" id="turtle_atr" min="5" max="55" value="20"><span class="val" id="turtle_atr_v">20</span>
+        <label>止损倍数</label><input type="range" id="turtle_stop" min="5" max="40" value="20"><span class="val" id="turtle_stop_v">2.0</span>
+      </div>
       <button class="s-btn" onclick="resetStrategy()">恢复默认</button>
     </div>
   </div>
@@ -615,7 +657,138 @@ function parseCSV(text) {
   return data;
 }
 
-// ==================== 指标计算引擎 (移植自Python indicators.py) ====================
+// ==================== 实时数据获取 (东方财富JSONP) ====================
+let rawDataSource = 'csv'; // 'csv' or 'api'
+
+function buildSecid(code) {
+  // 去除后缀和空格
+  code = code.trim().toUpperCase().replace(/\.(SH|SZ|BJ)$/, '');
+  // 6开头→上海(1.), 0/3开头→深圳(0.), 8/4开头→北交所(0.)
+  if (code.startsWith('6')) return '1.' + code;
+  if (code.startsWith('0') || code.startsWith('3')) return '0.' + code;
+  if (code.startsWith('8') || code.startsWith('4')) return '0.' + code;
+  // 默认深圳
+  return '0.' + code;
+}
+
+function getAdjCode() {
+  const adj = document.getElementById('adjType').value;
+  if (adj === 'qfq') return 1;
+  if (adj === 'hfq') return 2;
+  return 0; // 不复权
+}
+
+function fetchStockData() {
+  const code = document.getElementById('stockCode').value.trim();
+  if (!code) { setFetchStatus('请输入股票代码', 'err'); return; }
+
+  const secid = buildSecid(code);
+  const fqt = getAdjCode();
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.textContent = '获取中...';
+  setFetchStatus(`正在获取 ${code} 数据...`, 'loading');
+
+  // JSONP callback
+  const cbName = 'emCallback_' + Date.now();
+  const script = document.createElement('script');
+
+  // 东方财富日K线历史数据API (push2his不是push2)
+  // klt=101(日线), fqt=1(前复权), lmt=300(取300条)
+  // beg/end: 日期范围, cb: JSONP回调函数名
+  const now = new Date();
+  const begDate = (now.getFullYear() - 2) + '0101';
+  const endDate = now.getFullYear() + 
+    String(now.getMonth() + 1).padStart(2, '0') + 
+    String(now.getDate()).padStart(2, '0');
+  const url = `http://push2his.eastmoney.com/api/qt/stock/kline/get` +
+    `?secid=${secid}` +
+    `&fields1=f1,f2,f3,f4,f5,f6` +
+    `&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61` +
+    `&klt=101&fqt=${fqt}&beg=${begDate}&end=${endDate}&lmt=300` +
+    `&cb=${cbName}`;
+
+  let timeout = setTimeout(() => {
+    cleanup();
+    setFetchStatus('请求超时，请检查股票代码或网络', 'err');
+    btn.disabled = false;
+    btn.textContent = '获取实时数据';
+  }, 10000);
+
+  function cleanup() {
+    clearTimeout(timeout);
+    delete window[cbName];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(resp) {
+    cleanup();
+
+    if (!resp || !resp.data || !resp.data.klines || resp.data.klines.length === 0) {
+      setFetchStatus('未获取到数据，请检查股票代码', 'err');
+      btn.disabled = false;
+      btn.textContent = '获取实时数据';
+      return;
+    }
+
+    // 解析东方财富数据
+    // klines格式: "date,open,close,high,low,volume,amount,amplitude,changePct,change,turnover"
+    const klines = resp.data.klines;
+    const data = [];
+    for (let i = 0; i < klines.length; i++) {
+      const parts = klines[i].split(',');
+      if (parts.length < 7) continue;
+      const td = parts[0].replace(/-/g, '');
+      data.push({
+        trade_date: td,
+        dateLabel: parts[0],
+        open: parseFloat(parts[1]),
+        close: parseFloat(parts[2]),
+        high: parseFloat(parts[3]),
+        low: parseFloat(parts[4]),
+        vol: parseFloat(parts[5]) || 0
+      });
+    }
+
+    if (data.length < 10) {
+      setFetchStatus(`仅获取到${data.length}条数据，数据不足`, 'err');
+      btn.disabled = false;
+      btn.textContent = '获取实时数据';
+      return;
+    }
+
+    rawData = data;
+    rawDataSource = 'api';
+
+    // 更新股票名称显示
+    const name = resp.data.name || '';
+    const displayCode = code.includes('.') ? code : code;
+    document.getElementById('priceLabel').textContent =
+      `收盘价走势 · ${name} ${displayCode} · ${data.length}条 · ${data[0].dateLabel} ~ ${data[data.length-1].dateLabel}`;
+
+    setFetchStatus(`✓ ${name || displayCode} · ${data.length}条数据 · ${data[data.length-1].dateLabel}最新`, 'ok');
+    btn.disabled = false;
+    btn.textContent = '获取实时数据';
+
+    recalcAll();
+  };
+
+  script.onerror = function() {
+    cleanup();
+    setFetchStatus('网络错误，请稍后重试', 'err');
+    btn.disabled = false;
+    btn.textContent = '获取实时数据';
+  };
+
+  script.src = url;
+  document.body.appendChild(script);
+}
+
+function setFetchStatus(msg, type) {
+  const el = document.getElementById('fetchStatus');
+  el.textContent = msg;
+  el.className = 'fetch-status' + (type ? ' ' + type : '');
+}
 const Indicators = {
   // EMA递推: EMA_t = α*price + (1-α)*EMA_{t-1}, α = 2/(span+1)
   ema(values, span) {
@@ -1132,6 +1305,262 @@ const Strategy = {
   }
 };
 
+// ==================== 海龟策略引擎 ====================
+const TurtleStrategy = {
+  // 计算唐奇安通道 (shift(1) 后 rolling, 不含当日)
+  donchian(high, low, entryP, exitP) {
+    const n = high.length;
+    const entryUpper = new Array(n).fill(NaN);
+    const entryLower = new Array(n).fill(NaN);
+    const exitLower = new Array(n).fill(NaN);
+    for (let i = 0; i < n; i++) {
+      // 入场通道: 前 entryP 日的 high/low (shift 1)
+      if (i >= 1) {
+        let hu = -Infinity, ll = Infinity;
+        const eStart = Math.max(0, i - entryP);
+        for (let j = eStart; j < i; j++) {
+          if (high[j] > hu) hu = high[j];
+          if (low[j] < ll) ll = low[j];
+        }
+        entryUpper[i] = hu;
+        entryLower[i] = ll;
+        // 出场通道: 前 exitP 日的 low
+        let el = Infinity;
+        const xStart = Math.max(0, i - exitP);
+        for (let j = xStart; j < i; j++) {
+          if (low[j] < el) el = low[j];
+        }
+        exitLower[i] = el;
+      }
+    }
+    return { entryUpper, entryLower, exitLower };
+  },
+
+  // 计算 ATR (Wilder 平滑法)
+  atr(high, low, close, period) {
+    const n = close.length;
+    const tr = new Array(n).fill(0);
+    const atrArr = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      if (i === 0) {
+        tr[i] = high[i] - low[i];
+      } else {
+        tr[i] = Math.max(
+          high[i] - low[i],
+          Math.abs(high[i] - close[i-1]),
+          Math.abs(low[i] - close[i-1])
+        );
+      }
+    }
+    // Wilder EMA: alpha = 1/period
+    const alpha = 1.0 / period;
+    atrArr[0] = tr[0];
+    for (let i = 1; i < n; i++) {
+      atrArr[i] = alpha * tr[i] + (1 - alpha) * atrArr[i-1];
+    }
+    return atrArr;
+  },
+
+  // 生成信号: 突破上轨买入, 跌破出场下轨或ATR止损卖出
+  signals(close, entryUpper, exitLower, atrArr, stopMult) {
+    const n = close.length;
+    const signal = new Array(n).fill(0);
+    const position = new Array(n).fill(0);
+    const stopPrice = new Array(n).fill(NaN);
+    let holding = 0;
+    let stop = 0;
+
+    for (let i = 0; i < n; i++) {
+      const c = close[i];
+      const eu = entryUpper[i];
+      const xl = exitLower[i];
+      const atr = atrArr[i];
+
+      if (holding === 0) {
+        if (!isNaN(eu) && c > eu) {
+          signal[i] = 1;
+          holding = 1;
+          stop = c - stopMult * atr;
+          stopPrice[i] = stop;
+        }
+      } else {
+        // 跟踪止损: 仅上移
+        const newStop = c - stopMult * atr;
+        if (newStop > stop) stop = newStop;
+        stopPrice[i] = stop;
+        // 止损或出场
+        if (c < stop) {
+          signal[i] = -1;
+          holding = 0;
+          stop = 0;
+        } else if (!isNaN(xl) && c < xl) {
+          signal[i] = -1;
+          holding = 0;
+          stop = 0;
+        }
+      }
+      position[i] = holding;
+    }
+    return { signal, position, stopPrice };
+  },
+
+  // 回测 + 7项指标
+  backtest(data, entryP, exitP, atrP, stopMult) {
+    const close = data.map(d => d.close);
+    const high = data.map(d => d.high);
+    const low = data.map(d => d.low);
+    const n = close.length;
+
+    const { entryUpper, entryLower, exitLower } = this.donchian(high, low, entryP, exitP);
+    const atrArr = this.atr(high, low, close, atrP);
+    const { signal, position, stopPrice } = this.signals(close, entryUpper, exitLower, atrArr, stopMult);
+
+    // 日收益率
+    const stockReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) stockReturn[i] = (close[i] - close[i-1]) / close[i-1];
+
+    const stratReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) stratReturn[i] = position[i-1] * stockReturn[i];
+
+    const stratNAV = new Array(n).fill(1);
+    const benchNAV = new Array(n).fill(1);
+    for (let i = 1; i < n; i++) {
+      stratNAV[i] = stratNAV[i-1] * (1 + stratReturn[i]);
+      benchNAV[i] = benchNAV[i-1] * (1 + stockReturn[i]);
+    }
+
+    // 交易成本
+    const commission = 0.0003, stampTax = 0.001;
+    let totalCost = 0;
+    const capital = 100000;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) totalCost += capital * commission;
+      else if (signal[i] === -1) totalCost += capital * (commission + stampTax);
+    }
+    const costFactor = 1 - totalCost / (capital * stratNAV[n-1]);
+    if (costFactor > 0) for (let i = 0; i < n; i++) stratNAV[i] *= costFactor;
+
+    // === 7项指标 ===
+    const finalNAV = stratNAV[n-1];
+    const benchFinal = benchNAV[n-1];
+    const cumulativeReturn = (finalNAV - 1) * 100;
+    const benchReturn = (benchFinal - 1) * 100;
+
+    let maxNAV = -Infinity, maxDD = 0, benchMaxNAV = -Infinity, benchMDD = 0;
+    const ddArr = new Array(n), benchDDArr = new Array(n);
+    for (let i = 0; i < n; i++) {
+      if (stratNAV[i] > maxNAV) maxNAV = stratNAV[i];
+      ddArr[i] = (stratNAV[i] - maxNAV) / maxNAV;
+      if (ddArr[i] < maxDD) maxDD = ddArr[i];
+      if (benchNAV[i] > benchMaxNAV) benchMaxNAV = benchNAV[i];
+      benchDDArr[i] = (benchNAV[i] - benchMaxNAV) / benchMaxNAV;
+      if (benchDDArr[i] < benchMDD) benchMDD = benchDDArr[i];
+    }
+    const mdd = maxDD * 100;
+    const benchMddPct = benchMDD * 100;
+
+    const tradingDays = 252;
+    const meanRet = stratReturn.reduce((a,b) => a+b, 0) / n;
+    const variance = stratReturn.reduce((a,b) => a + (b - meanRet)**2, 0) / n;
+    const dailyStd = Math.sqrt(variance);
+    const annVol = dailyStd * Math.sqrt(tradingDays) * 100;
+
+    const benchMean = stockReturn.reduce((a,b) => a+b, 0) / n;
+    const benchVar = stockReturn.reduce((a,b) => a + (b - benchMean)**2, 0) / n;
+    const benchVol = Math.sqrt(benchVar) * Math.sqrt(tradingDays) * 100;
+
+    const rf = 0.02 / tradingDays;
+    const excessMean = meanRet - rf;
+    const sharpe = dailyStd > 0 ? Math.sqrt(tradingDays) * excessMean / dailyStd : 0;
+
+    const annReturn = (Math.pow(finalNAV, tradingDays / n) - 1) * 100;
+
+    let winCount = 0, lossCount = 0, totalTrips = 0;
+    let winProfits = [], lossAmounts = [];
+    let buyPrice = null;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) { buyPrice = close[i]; }
+      else if (signal[i] === -1 && buyPrice !== null) {
+        const ret = (close[i] - buyPrice) / buyPrice;
+        if (ret > 0) { winCount++; winProfits.push(ret); }
+        else { lossCount++; lossAmounts.push(Math.abs(ret)); }
+        totalTrips++;
+        buyPrice = null;
+      }
+    }
+    const winRate = totalTrips > 0 ? winCount / totalTrips * 100 : 0;
+    const avgWin = winProfits.length > 0 ? winProfits.reduce((a,b)=>a+b,0)/winProfits.length : 0;
+    const avgLoss = lossAmounts.length > 0 ? lossAmounts.reduce((a,b)=>a+b,0)/lossAmounts.length : 0;
+    const plr = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const expR = avgLoss > 0 ? (winCount * avgWin - lossCount * avgLoss) / (totalTrips * avgLoss) : 0;
+
+    const buyPoints = [], sellPoints = [];
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) buyPoints.push({ idx: i, price: close[i] });
+      else if (signal[i] === -1) sellPoints.push({ idx: i, price: close[i] });
+    }
+
+    return {
+      close, entryUpper, entryLower, exitLower, atrArr, stopPrice,
+      signal, position,
+      stratNAV, benchNAV, ddArr, benchDDArr,
+      buyPoints, sellPoints,
+      metrics: { cumulativeReturn, benchReturn, annReturn, mdd, benchMddPct,
+                 annVol, benchVol, sharpe, winRate, plr, expR,
+                 nTrades: buyPoints.length + sellPoints.length,
+                 buyCount: buyPoints.length, sellCount: sellPoints.length, totalTrips }
+    };
+  }
+};
+
+// ==================== 策略切换 ====================
+let currentStrategy = 'ma';
+
+function switchStrategy() {
+  currentStrategy = document.getElementById('stratType').value;
+  const maParams = document.getElementById('maParams');
+  const turtleParams = document.getElementById('turtleParams');
+  const tag = document.getElementById('stratTag');
+
+  if (currentStrategy === 'ma') {
+    maParams.classList.add('active');
+    turtleParams.classList.remove('active');
+    tag.textContent = 'MA交叉 · 金叉买入 / 死叉卖出';
+    // 重建信号图数据集为双均线
+    rebuildSignalChart('ma');
+  } else {
+    turtleParams.classList.add('active');
+    maParams.classList.remove('active');
+    tag.textContent = '唐奇安通道突破 · ATR动态止损';
+    // 重建信号图数据集为海龟
+    rebuildSignalChart('turtle');
+  }
+  updateStrategy(getVisibleData());
+}
+
+function rebuildSignalChart(type) {
+  const chart = charts.stratSignal;
+  if (type === 'ma') {
+    chart.data.datasets = [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA短', data: [], borderColor: '#FF9800', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA长', data: [], borderColor: '#9C27B0', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '买入', data: [], borderColor: '#f85149', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+      { label: '卖出', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 5, pointStyle: 'crossRot', showLine: false }
+    ];
+  } else {
+    chart.data.datasets = [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '上轨', data: [], borderColor: '#f85149', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '下轨', data: [], borderColor: '#3fb950', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'ATR止损', data: [], borderColor: '#d29922', borderWidth: 0.6, borderDash: [3,2], pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '买入', data: [], borderColor: '#f85149', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+      { label: '卖出', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 5, pointStyle: 'crossRot', showLine: false }
+    ];
+  }
+  chart.update('none');
+}
+
 // ==================== 策略图表初始化 ====================
 function initStrategyCharts() {
   // 信号图
@@ -1170,28 +1599,57 @@ function initStrategyCharts() {
 
 // ==================== 策略更新 ====================
 function updateStrategy(data) {
-  const shortP = parseInt(document.getElementById('strat_short').value);
-  const longP = parseInt(document.getElementById('strat_long').value);
   const labels = data.map(d => d.dateLabel);
-  const result = Strategy.backtest(data, shortP, longP);
-  const m = result.metrics;
+  let result, m, signalLabel;
 
-  // 信号图
-  charts.stratSignal.data.labels = labels;
-  charts.stratSignal.data.datasets[0].data = result.close;
-  charts.stratSignal.data.datasets[1].data = result.maShort;
-  charts.stratSignal.data.datasets[2].data = result.maLong;
-  // 买卖点：用稀疏数组
-  const buyArr = new Array(data.length).fill(null);
-  const sellArr = new Array(data.length).fill(null);
-  result.buyPoints.forEach(p => buyArr[p.idx] = p.price);
-  result.sellPoints.forEach(p => sellArr[p.idx] = p.price);
-  charts.stratSignal.data.datasets[3].data = buyArr;
-  charts.stratSignal.data.datasets[4].data = sellArr;
-  charts.stratSignal.update('none');
+  if (currentStrategy === 'ma') {
+    const shortP = parseInt(document.getElementById('strat_short').value);
+    const longP = parseInt(document.getElementById('strat_long').value);
+    result = Strategy.backtest(data, shortP, longP);
+    m = result.metrics;
 
-  document.getElementById('stratSignalLabel').innerHTML =
-    `MA${shortP}/${longP} 信号 · <b style="color:#f85149">▲买入${m.buyCount}</b> · <b style="color:#3fb950">✕卖出${m.sellCount}</b> · 累计回报 <b>${m.cumulativeReturn >= 0 ? '+' : ''}${m.cumulativeReturn.toFixed(2)}%</b>`;
+    // 信号图: 收盘价 + MA短 + MA长 + 买卖点
+    charts.stratSignal.data.labels = labels;
+    charts.stratSignal.data.datasets[0].data = result.close;
+    charts.stratSignal.data.datasets[1].data = result.maShort;
+    charts.stratSignal.data.datasets[2].data = result.maLong;
+    const buyArr = new Array(data.length).fill(null);
+    const sellArr = new Array(data.length).fill(null);
+    result.buyPoints.forEach(p => buyArr[p.idx] = p.price);
+    result.sellPoints.forEach(p => sellArr[p.idx] = p.price);
+    charts.stratSignal.data.datasets[3].data = buyArr;
+    charts.stratSignal.data.datasets[4].data = sellArr;
+    charts.stratSignal.update('none');
+
+    signalLabel = `MA${shortP}/${longP} 信号 · <b style="color:#f85149">▲买入${m.buyCount}</b> · <b style="color:#3fb950">✕卖出${m.sellCount}</b> · 累计回报 <b>${m.cumulativeReturn >= 0 ? '+' : ''}${m.cumulativeReturn.toFixed(2)}%</b>`;
+  } else {
+    const entryP = parseInt(document.getElementById('turtle_entry').value);
+    const exitP = parseInt(document.getElementById('turtle_exit').value);
+    const atrP = parseInt(document.getElementById('turtle_atr').value);
+    const stopMult = parseInt(document.getElementById('turtle_stop').value) / 10;
+    result = TurtleStrategy.backtest(data, entryP, exitP, atrP, stopMult);
+    m = result.metrics;
+
+    // 信号图: 收盘价 + 上轨 + 下轨 + ATR止损 + 买卖点
+    charts.stratSignal.data.labels = labels;
+    charts.stratSignal.data.datasets[0].data = result.close;
+    charts.stratSignal.data.datasets[1].data = result.entryUpper;
+    charts.stratSignal.data.datasets[2].data = result.entryLower;
+    // ATR止损线 (仅持仓段)
+    const stopArr = result.stopPrice.map(v => isNaN(v) ? null : v);
+    charts.stratSignal.data.datasets[3].data = stopArr;
+    const buyArr = new Array(data.length).fill(null);
+    const sellArr = new Array(data.length).fill(null);
+    result.buyPoints.forEach(p => buyArr[p.idx] = p.price);
+    result.sellPoints.forEach(p => sellArr[p.idx] = p.price);
+    charts.stratSignal.data.datasets[4].data = buyArr;
+    charts.stratSignal.data.datasets[5].data = sellArr;
+    charts.stratSignal.update('none');
+
+    signalLabel = `DC${entryP}/${exitP} ATR${atrP} S${stopMult.toFixed(1)} · <b style="color:#f85149">▲买入${m.buyCount}</b> · <b style="color:#3fb950">✕卖出${m.sellCount}</b> · 累计回报 <b>${m.cumulativeReturn >= 0 ? '+' : ''}${m.cumulativeReturn.toFixed(2)}%</b>`;
+  }
+
+  document.getElementById('stratSignalLabel').innerHTML = signalLabel;
 
   // 净值图
   charts.stratNav.data.labels = labels;
@@ -1234,10 +1692,21 @@ function updateStrategy(data) {
 }
 
 function resetStrategy() {
-  document.getElementById('strat_short').value = 5;
-  document.getElementById('strat_long').value = 15;
-  document.getElementById('strat_short_v').textContent = '5';
-  document.getElementById('strat_long_v').textContent = '15';
+  if (currentStrategy === 'ma') {
+    document.getElementById('strat_short').value = 5;
+    document.getElementById('strat_long').value = 15;
+    document.getElementById('strat_short_v').textContent = '5';
+    document.getElementById('strat_long_v').textContent = '15';
+  } else {
+    document.getElementById('turtle_entry').value = 20;
+    document.getElementById('turtle_exit').value = 10;
+    document.getElementById('turtle_atr').value = 20;
+    document.getElementById('turtle_stop').value = 20;
+    document.getElementById('turtle_entry_v').textContent = '20';
+    document.getElementById('turtle_exit_v').textContent = '10';
+    document.getElementById('turtle_atr_v').textContent = '20';
+    document.getElementById('turtle_stop_v').textContent = '2.0';
+  }
   updateStrategy(getVisibleData());
 }
 
@@ -1341,13 +1810,31 @@ window.addEventListener('DOMContentLoaded', () => {
   bindSlider('kdj_m1', 'kdj_m1_v');
   bindSlider('kdj_m2', 'kdj_m2_v');
 
-  // 策略滑块
+  // 策略滑块 - 双均线
   document.getElementById('strat_short').addEventListener('input', () => {
     document.getElementById('strat_short_v').textContent = document.getElementById('strat_short').value;
     debounce(() => updateStrategy(getVisibleData()), 'strat');
   });
   document.getElementById('strat_long').addEventListener('input', () => {
     document.getElementById('strat_long_v').textContent = document.getElementById('strat_long').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+
+  // 策略滑块 - 海龟
+  document.getElementById('turtle_entry').addEventListener('input', () => {
+    document.getElementById('turtle_entry_v').textContent = document.getElementById('turtle_entry').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('turtle_exit').addEventListener('input', () => {
+    document.getElementById('turtle_exit_v').textContent = document.getElementById('turtle_exit').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('turtle_atr').addEventListener('input', () => {
+    document.getElementById('turtle_atr_v').textContent = document.getElementById('turtle_atr').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('turtle_stop').addEventListener('input', () => {
+    document.getElementById('turtle_stop_v').textContent = (parseInt(document.getElementById('turtle_stop').value) / 10).toFixed(1);
     debounce(() => updateStrategy(getVisibleData()), 'strat');
   });
 

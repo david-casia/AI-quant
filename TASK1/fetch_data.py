@@ -48,7 +48,7 @@ def fetch_pro_bar():
         ts_code=TS_CODE,
         start_date=start_date,
         end_date=end_date,
-        adj=None,   # 非复权（原始交易数据）
+        adj="qfq",   # 前复权（消除除权除息跳变，技术分析标准做法）
         freq="D",
     )
     if df is None or len(df) == 0:
@@ -82,7 +82,7 @@ def fetch_akshare():
         period="daily",
         start_date=start_date,
         end_date=end_date,
-        adjust="",
+        adjust="qfq",
     )
     if df is None or len(df) == 0:
         raise Exception("akshare 返回空数据")

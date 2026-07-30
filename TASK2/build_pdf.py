@@ -43,8 +43,8 @@ MACD_PNG = "002594_macd.png"
 BOLL_PNG = "002594_boll.png"
 KDJ_PNG = "002594_kdj.png"
 
-# 除权日
-EX_DIV_DATE = "2025-07-29"
+# 除权日（前复权数据已消除跳变，保留变量供兼容，实际不使用）
+EX_DIV_DATE = None
 
 
 def text_to_html_paragraphs(text):
@@ -105,22 +105,13 @@ def build_describe_table():
 
 
 def build_rsi_analysis(df):
-    """RSI 图表解读（动态生成）"""
+    """RSI 图表解读（前复权数据，动态生成）"""
     rsi = df["rsi"].dropna()
     last_rsi = df["rsi"].iloc[-1]
     max_rsi = rsi.max()
     min_rsi = rsi.min()
     overbought = (rsi > 70).sum()
     oversold = (rsi < 30).sum()
-
-    # 除权日附近的RSI
-    ex_div_idx = df[df["trade_date"] == pd.Timestamp(EX_DIV_DATE)].index
-    if len(ex_div_idx) > 0:
-        idx = ex_div_idx[0]
-        rsi_at_ex = df.loc[idx, "rsi"]
-        rsi_str = f"{rsi_at_ex:.2f}" if pd.notna(rsi_at_ex) else "N/A"
-    else:
-        rsi_str = "N/A"
 
     # 末值状态
     if last_rsi > 70:
@@ -130,15 +121,15 @@ def build_rsi_analysis(df):
     else:
         status = f"处于中性区域（{last_rsi:.2f}），多空力量相对均衡"
 
-    analysis = f"""从图1可以看出，比亚迪(002594.SZ)的RSI(14)指标在过去一年中呈现出显著的波动特征。RSI最大值为{max_rsi:.2f}，最小值为{min_rsi:.2f}，末值为{last_rsi:.2f}，{status}。在观察期内，RSI进入超买区间（>70）的天数为{overbought}天，进入超卖区间（<30）的天数为{oversold}天，超卖天数明显多于超买天数，反映出期间价格整体下行压力较大。
+    analysis = f"""从图1可以看出，比亚迪(002594.SZ)的RSI(14)指标在过去一年中呈现出显著的波动特征。RSI最大值为{max_rsi:.2f}，最小值为{min_rsi:.2f}，末值为{last_rsi:.2f}，{status}。在观察期内，RSI进入超买区间（>70）的天数为{overbought}天，进入超卖区间（<30）的天数为{oversold}天。
 
-需要特别说明的是，2025年7月29日除权除息导致收盘价骤降66.94%，RSI在除权日附近骤降至极低值（约{rsi_str}），并在之后数个交易日内维持低位。这一极端低值并非真实的市场超卖信号，而是除权效应在Wilder平滑法下的"记忆效应"所致。排除除权影响后，RSI在正常交易时段的波动相对平稳，能够有效反映市场的多空力量变化。"""
+由于采用了前复权数据，RSI指标的计算不受除权除息跳变的干扰，能够真实反映市场多空力量的变化。从走势来看，RSI在超买与超卖区间之间规律性交替，指标信号具有较高的参考价值。当RSI从超卖区反弹突破50时，往往预示着短期价格企稳回升；当RSI从超买区回落跌破50时，则提示短期价格面临调整压力。"""
 
     return analysis.strip()
 
 
 def build_macd_analysis(df):
-    """MACD 图表解读（动态生成）"""
+    """MACD 图表解读（前复权数据，动态生成）"""
     last_dif = df["dif"].iloc[-1]
     last_dea = df["dea"].iloc[-1]
     last_macd = df["macd"].iloc[-1]
@@ -161,15 +152,13 @@ def build_macd_analysis(df):
 
     analysis = f"""从图2可以看出，比亚迪(002594.SZ)的MACD(12,26,9)指标在过去一年中经历了显著的趋势变化。末日DIF值为{last_dif:.4f}，DEA值为{last_dea:.4f}，MACD柱为{last_macd:.4f}，{cross_status}。DIF的最大值为{max_dif:.4f}，最小值为{min_dif:.4f}，振幅较大。
 
-在2025年7月29日除权除息日，由于收盘价骤降，EMA(12)和EMA(26)均出现剧烈下移，DIF快速下穿零轴并达到极低值（约{min_dif:.2f}），MACD柱出现巨大的绿色柱体。这一极端信号是由除权效应而非真实市场趋势反转所致。除权后，随着EMA逐步消化除权跳变的影响，DIF和DEA逐渐收敛并趋于稳定。从末日指标来看，{zero_status}，MACD柱由负转正的趋势需持续观察以确认反弹信号的有效性。
-
-整体而言，MACD指标在除权日附近产生了明显的失真信号，使用非复权数据计算MACD时需谨慎解读除权日前后金叉死叉信号的真实性。"""
+由于采用了前复权数据，MACD指标的计算基于连续平滑的价格序列，金叉死叉信号和零轴穿越均具有真实的分析意义。从走势来看，DIF与DEA的交叉较好地捕捉了价格趋势的转折点，MACD柱状图的红绿交替清晰反映了多空动量的切换节奏。{zero_status}，后续需持续关注MACD柱的变化方向以确认趋势的延续性。"""
 
     return analysis.strip()
 
 
 def build_boll_analysis(df):
-    """布林带图表解读（动态生成）"""
+    """布林带图表解读（前复权数据，动态生成）"""
     boll_valid = df.dropna(subset=["boll_upper"])
     last_close = df["close"].iloc[-1]
     last_upper = df["boll_upper"].iloc[-1]
@@ -204,17 +193,15 @@ def build_boll_analysis(df):
     touch_upper = (df["close"] > df["boll_upper"]).sum()
     touch_lower = (df["close"] < df["boll_lower"]).sum()
 
-    analysis = f"""从图3可以看出，比亚迪(002594.SZ)的布林带(20,2)指标在过去一年中呈现出先扩张后收敛的特征。末日收盘价为{last_close:.2f}元，上轨为{last_upper:.2f}元，中轨为{last_mid:.2f}元，下轨为{last_lower:.2f}元，{position}。布林带%B指标（收盘价在通道中的相对位置）为{pct_b:.1f}%，{pct_b_hint}。%B指标的取值含义为：大于100表示价格突破上轨（超买），小于0表示价格跌破下轨（超卖），等于50表示价格恰好位于中轨。
+    analysis = f"""从图3可以看出，比亚迪(002594.SZ)的布林带(20,2)指标在过去一年中呈现出合理的扩张与收敛交替特征。末日收盘价为{last_close:.2f}元，上轨为{last_upper:.2f}元，中轨为{last_mid:.2f}元，下轨为{last_lower:.2f}元，{position}。布林带%B指标（收盘价在通道中的相对位置）为{pct_b:.1f}%，{pct_b_hint}。%B指标的取值含义为：大于100表示价格突破上轨（超买），小于0表示价格跌破下轨（超卖），等于50表示价格恰好位于中轨。
 
-在2025年7月29日除权除息后，由于20日移动窗口内同时包含了除权前300元以上的高价和除权后110元左右的低价，标准差被极度放大，布林带上下轨出现异常扩张。随着除权前的高价数据逐步移出20日窗口，布林带通道逐渐收敛并恢复正常宽度。在观察期内，收盘价触及或突破上轨的次数为{touch_upper}次，触及或跌破下轨的次数为{touch_lower}次，触及下轨的次数较多，反映出期间价格整体偏弱。
-
-布林带通道的宽度变化有效反映了市场波动率的演变：通道扩张期对应价格大幅波动（主要由除权效应引起），通道收敛期则对应价格相对平稳的震荡阶段。投资者可结合带宽变化判断市场是否即将出现趋势性突破。"""
+由于采用了前复权数据，布林带的计算基于连续平滑的价格序列，通道宽度真实反映了市场波动率的变化。在观察期内，收盘价触及或突破上轨的次数为{touch_upper}次，触及或跌破下轨的次数为{touch_lower}次。通道收窄（squeeze）现象通常预示着市场即将出现趋势性突破，投资者可结合带宽变化与价格突破方向判断后续走势。"""
 
     return analysis.strip()
 
 
 def build_kdj_analysis(df):
-    """KDJ 图表解读（动态生成）"""
+    """KDJ 图表解读（前复权数据，动态生成）"""
     last_k = df["k"].iloc[-1]
     last_d = df["d"].iloc[-1]
     last_j = df["j"].iloc[-1]
@@ -241,18 +228,9 @@ def build_kdj_analysis(df):
     else:
         j_status = f"J值为{last_j:.2f}，处于正常区间"
 
-    # 除权日J值
-    ex_div_idx = df[df["trade_date"] == pd.Timestamp(EX_DIV_DATE)].index
-    if len(ex_div_idx) > 0:
-        j_at_ex = df.loc[ex_div_idx[0], "j"]
-    else:
-        j_at_ex = 0
+    analysis = f"""从图4可以看出，比亚迪(002594.SZ)的KDJ(9,3,3)随机指标在过去一年中波动较为剧烈。末日K值为{last_k:.2f}，D值为{last_d:.2f}，J值为{last_j:.2f}，{cross_status}，{j_status}。在观察期内，K值进入超买区间（>80）的天数为{overbought}天，进入超卖区间（<20）的天数为{oversold}天。
 
-    analysis = f"""从图4可以看出，比亚迪(002594.SZ)的KDJ(9,3,3)随机指标在过去一年中波动较为剧烈。末日K值为{last_k:.2f}，D值为{last_d:.2f}，J值为{last_j:.2f}，{cross_status}，{j_status}。在观察期内，K值进入超买区间（>80）的天数为{overbought}天，进入超卖区间（<20）的天数为{oversold}天，超卖天数显著多于超买天数，与RSI的判断一致。
-
-在2025年7月29日除权除息日，由于收盘价远低于前9日的最低价，RSV骤降至接近0，导致K、D值快速下探，J值出现极端负值（约{j_at_ex:.2f}）。这一极端信号是除权效应的产物，并非真实的市场超卖。除权后随着9日窗口逐步重置，KDJ指标恢复正常波动。
-
-与RSI相比，KDJ指标由于引入了最高价和最低价信息，对短期价格波动的敏感性更强，金叉死叉信号更为频繁。在除权日附近，KDJ的虚假信号比RSI更为突出，使用时需结合除权信息进行甄别。在正常交易时段，KDJ的超买超卖信号和金叉死叉信号对短线交易具有一定的参考价值。"""
+由于采用了前复权数据，KDJ指标的计算不受除权跳变的干扰，金叉死叉信号和超买超卖判断均具有真实的分析意义。与RSI相比，KDJ指标由于引入了最高价和最低价信息，对短期价格波动的敏感性更强，信号更为频繁。在实际应用中，建议将KDJ与RSI、MACD等指标配合使用，通过多指标交叉验证降低虚假信号的风险。"""
 
     return analysis.strip()
 
@@ -379,7 +357,7 @@ def build_html():
 <h3>3.2 RSI 计算与可视化</h3>
 <p>使用Wilder平滑法计算14日RSI指标，计算代码如下：</p>
 <pre class="code">{rsi_code}</pre>
-<p>计算完成后，使用matplotlib绘制RSI走势图，如图1所示。图中紫色曲线为RSI(14)，红色虚线为超买线（70），绿色虚线为超卖线（30），灰色点线为多空分界线（50），红色竖虚线标注除权日。</p>
+<p>计算完成后，使用matplotlib绘制RSI走势图，如图1所示。图中紫色曲线为RSI(14)，红色虚线为超买线（70），绿色虚线为超卖线（30），灰色点线为多空分界线（50）。</p>
 <div class="figure">
     <img src="{rsi_img}" alt="RSI走势图" />
     <div class="fig-caption">图1 比亚迪(002594.SZ) RSI(14) 相对强弱指数</div>
@@ -410,7 +388,7 @@ def build_html():
 {boll_analysis}
 
 <h3>3.5 综合解读</h3>
-<p>综合RSI、MACD和布林带三项指标的分析结果，可以得出以下结论：三项指标在2025年7月29日除权除息日均产生了显著的失真信号，这是非复权数据的固有局限。在排除除权效应后，RSI和KDJ的超卖信号偏多，MACD整体处于空头格局，布林带显示价格波动率经历了先扩张后收敛的过程。三项指标的信号方向基本一致，相互印证了期间价格整体偏弱的判断。在实际应用中，建议结合前复权数据使用技术指标，并采用多指标组合策略以降低单一指标的虚假信号风险。</p>
+<p>综合RSI、MACD和布林带三项指标的分析结果，可以得出以下结论：由于采用了前复权数据，三项指标均基于连续平滑的价格序列计算，信号质量可靠。RSI的超买超卖信号、MACD的金叉死叉信号和布林带的通道突破信号在走势图中清晰可辨，且方向基本一致，相互印证。在实际应用中，建议采用多指标组合策略，通过交叉验证降低单一指标的虚假信号风险，并结合基本面分析和仓位管理形成完整的交易决策体系。</p>
 
 <h2>{Q4_TITLE}</h2>
 {q4_body_html}

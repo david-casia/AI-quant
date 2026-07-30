@@ -1,0 +1,350 @@
+/* style.css - 量化交易作业 TASK8 样式表 */
+/* 格式要求：宋体、五号字(10.5pt)、1.5倍行距、0段间距、两端对齐 */
+
+@page {
+    size: A4;
+    margin: 2.54cm 3.18cm;
+}
+
+@page :first {
+    margin: 0;
+}
+
+body {
+    font-family: "SimSun", "宋体", "Noto Serif CJK SC", serif;
+    font-size: 10.5pt;
+    line-height: 1.5;
+    text-align: justify;
+    text-justify: inter-ideograph;
+    color: #000000;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+    text-indent: 2em;
+    line-height: 1.5;
+}
+
+h1 {
+    font-size: 18pt;
+    font-weight: bold;
+    text-align: center;
+    margin: 0 0 14pt 0;
+    text-indent: 0;
+    line-height: 1.5;
+}
+
+h2 {
+    font-size: 14pt;
+    font-weight: bold;
+    margin: 18pt 0 8pt 0;
+    text-indent: 0;
+    page-break-after: avoid;
+    line-height: 1.5;
+}
+
+h3 {
+    font-size: 11.5pt;
+    font-weight: bold;
+    margin: 10pt 0 4pt 0;
+    text-indent: 0;
+    page-break-after: avoid;
+    line-height: 1.5;
+}
+
+h4 {
+    font-size: 10.5pt;
+    font-weight: bold;
+    margin: 6pt 0 2pt 0;
+    text-indent: 0;
+}
+
+/* ===== 封面 ===== */
+.cover-page {
+    page-break-after: always;
+    text-align: center;
+    padding-top: 150pt;
+    text-indent: 0;
+}
+
+.cover-page .cover-title {
+    font-size: 26pt;
+    font-weight: bold;
+    margin-bottom: 18pt;
+    text-indent: 0;
+    line-height: 1.5;
+}
+
+.cover-page .cover-subtitle {
+    font-size: 14pt;
+    color: #444;
+    margin-bottom: 70pt;
+    text-indent: 0;
+}
+
+.cover-page .cover-info {
+    font-size: 12pt;
+    line-height: 2.0;
+    text-indent: 0;
+    margin-top: 60pt;
+}
+
+.cover-page .cover-info p {
+    text-indent: 0;
+    text-align: center;
+    margin: 4pt 0;
+}
+
+/* ===== 目录 ===== */
+.toc-page {
+    page-break-after: always;
+}
+
+.toc-page h2 {
+    text-align: center;
+    font-size: 16pt;
+    margin-bottom: 20pt;
+}
+
+.toc-entry {
+    text-indent: 0;
+    margin: 5pt 0;
+    font-size: 10.5pt;
+    line-height: 1.5;
+}
+
+.toc-level2 {
+    padding-left: 2em;
+    color: #444;
+}
+
+.toc-level3 {
+    padding-left: 4em;
+    color: #666;
+    font-size: 10pt;
+}
+
+/* ===== 摘要 ===== */
+.abstract-box {
+    border: 1pt solid #666;
+    padding: 14pt 18pt;
+    margin: 12pt 0 18pt 0;
+    text-indent: 0;
+    page-break-inside: avoid;
+}
+
+.abstract-box h3 {
+    text-align: center;
+    font-size: 14pt;
+    text-indent: 0;
+    margin: 0 0 10pt 0;
+}
+
+.abstract-box p {
+    text-indent: 2em;
+    line-height: 1.5;
+}
+
+.abstract-metrics {
+    display: flex;
+    justify-content: space-around;
+    margin: 12pt 0;
+    text-indent: 0;
+    page-break-inside: avoid;
+}
+
+.metric-card {
+    text-align: center;
+    border: 0.5pt solid #999;
+    padding: 10pt 8pt;
+    width: 22%;
+    text-indent: 0;
+}
+
+.metric-card .metric-label {
+    font-size: 9.5pt;
+    color: #555;
+    margin-bottom: 4pt;
+}
+
+.metric-card .metric-value {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #cc0000;
+    margin-bottom: 3pt;
+}
+
+.metric-card .metric-note {
+    font-size: 9pt;
+    color: #777;
+}
+
+/* ===== 章节标题 ===== */
+.chapter-title {
+    font-size: 16pt;
+    font-weight: bold;
+    text-align: center;
+    margin: 20pt 0 14pt 0;
+    text-indent: 0;
+    page-break-before: always;
+    page-break-after: avoid;
+}
+
+/* ===== 图表 ===== */
+.figure {
+    text-align: center;
+    margin: 10pt 0 12pt 0;
+    text-indent: 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+}
+
+.figure img {
+    max-width: 100%;
+    max-height: 18cm;
+}
+
+.fig-caption {
+    font-size: 10.5pt;
+    text-align: center;
+    margin-top: 5pt;
+    margin-bottom: 5pt;
+    text-indent: 0;
+    font-weight: bold;
+}
+
+/* ===== 表格 ===== */
+table.data {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 9.5pt;
+    margin: 8pt 0;
+    text-indent: 0;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    line-height: 1.2;
+}
+
+table.data caption {
+    font-size: 10.5pt;
+    font-weight: bold;
+    margin-bottom: 5pt;
+    text-align: center;
+    caption-side: top;
+    line-height: 1.5;
+}
+
+table.data th, table.data td {
+    border: 0.5pt solid #000;
+    padding: 4pt 5pt;
+    text-align: center;
+    line-height: 1.2;
+    word-wrap: break-word;
+    word-break: normal;
+    overflow-wrap: break-word;
+}
+
+table.data th {
+    background: #e8e8e8;
+    font-weight: bold;
+    font-size: 9.5pt;
+    line-height: 1.2;
+}
+
+table.data .col-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+table.data .col-left {
+    text-align: left;
+}
+
+table.data .row-highlight {
+    background: #fff8e8;
+    font-weight: bold;
+}
+
+/* ===== 列表 ===== */
+ul, ol {
+    margin: 4pt 0 4pt 2em;
+    padding: 0;
+    line-height: 1.5;
+}
+
+li {
+    margin: 1pt 0;
+    padding: 0;
+    text-indent: 0;
+}
+
+ul li, ol li {
+    line-height: 1.5;
+}
+
+/* ===== 强调 ===== */
+.bold {
+    font-weight: bold;
+}
+
+.underline {
+    text-decoration: underline;
+}
+
+.highlight {
+    color: #cc0000;
+    font-weight: bold;
+}
+
+/* ===== 附录 ===== */
+.appendix-item {
+    text-indent: 0;
+    margin: 8pt 0;
+    line-height: 1.5;
+}
+
+.appendix-item p {
+    text-indent: 2em;
+    line-height: 1.5;
+}
+
+.appendix-num {
+    font-weight: bold;
+    color: #cc0000;
+}
+
+/* ===== 信息块 ===== */
+.info-block {
+    text-align: center;
+    margin-bottom: 18pt;
+    text-indent: 0;
+}
+
+.info-block p {
+    text-indent: 0;
+    text-align: center;
+    margin: 2pt 0;
+}
+
+/* ===== 引用 ===== */
+.quote {
+    border-left: 3pt solid #999;
+    padding: 6pt 10pt;
+    margin: 8pt 0;
+    background: #fafafa;
+    text-indent: 0;
+    color: #444;
+    font-size: 10pt;
+    line-height: 1.5;
+}
+
+.quote p {
+    text-indent: 0;
+    line-height: 1.5;
+}
+
+/* 防止表格单元格内容折行 */
+table.data td.nowrap, table.data th.nowrap {
+    white-space: nowrap;
+}

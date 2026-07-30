@@ -57,8 +57,8 @@ else:
                                         "Noto Sans CJK SC"]
 plt.rcParams["axes.unicode_minus"] = False
 
-# ============ 除权日标记 ============
-EX_DIV_DATE = pd.Timestamp("2025-07-29")
+# ============ 除权日标记（前复权数据已消除跳变，无需标注） ============
+# 使用前复权数据后，指标曲线连续平滑，不再有除权断崖
 
 # ============ 输出路径 ============
 RSI_PNG = os.path.join(BASE_DIR, "002594_rsi.png")
@@ -68,14 +68,8 @@ KDJ_PNG = os.path.join(BASE_DIR, "002594_kdj.png")
 
 
 def add_ex_div_line(ax, y_pos_factor=0.95):
-    """在子图上添加除权日竖虚线"""
-    ax.axvline(EX_DIV_DATE, color="#FF0000", linestyle="--",
-               linewidth=0.8, alpha=0.6, label="除权日")
-    ymax = ax.get_ylim()[1]
-    ymin = ax.get_ylim()[0]
-    ax.text(EX_DIV_DATE, ymin + (ymax - ymin) * y_pos_factor,
-            " 除权日", color="red", fontsize=7,
-            fontproperties=zh_font, ha="left", va="top")
+    """前复权数据无需除权日标注，此函数保留为空操作以保持调用兼容"""
+    pass
 
 
 def setup_xaxis(ax):

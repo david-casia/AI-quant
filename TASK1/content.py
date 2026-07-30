@@ -72,11 +72,11 @@ end_date = datetime.date.today().strftime('%Y%m%d')
 start_date = (datetime.date.today() -
               datetime.timedelta(days=365)).strftime('%Y%m%d')
 
-# 通过 pro_bar 接口获取日线行情数据（非复权）
+# 通过 pro_bar 接口获取日线行情数据（前复权）
 df = ts.pro_bar(ts_code=ts_code,
                 start_date=start_date,
                 end_date=end_date,
-                adj=None,   # 非复权（原始交易数据）
+                adj='qfq',   # 前复权（消除除权除息跳变）
                 freq='D')   # 日线
 
 # 按交易日期排序并保存为CSV

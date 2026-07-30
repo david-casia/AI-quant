@@ -1,0 +1,4258 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>股票技术指标分析工具</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Microsoft YaHei", "PingFang SC", -apple-system, sans-serif;
+  background: #0d1117; color: #c9d1d9; font-size: 13px; line-height: 1.5;
+}
+/* ===== 顶栏 ===== */
+.topbar {
+  display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+  background: #161b22; border-bottom: 0.5px solid #30363d;
+}
+.topbar .title { font-weight: 600; font-size: 15px; white-space: nowrap; }
+.topbar .spacer { flex: 1; }
+.topbar input[type=text] {
+  width: 120px; padding: 4px 8px; font-size: 12px;
+  background: #0d1117; border: 0.5px solid #30363d; border-radius: 4px; color: #c9d1d9;
+}
+.topbar select {
+  padding: 4px 8px; font-size: 12px;
+  background: #0d1117; border: 0.5px solid #30363d; border-radius: 4px; color: #c9d1d9;
+}
+.topbar button {
+  padding: 4px 10px; font-size: 12px;
+  background: #21262d; border: 0.5px solid #30363d; border-radius: 4px; color: #c9d1d9; cursor: pointer;
+}
+.topbar button:hover { background: #30363d; }
+.topbar .file-btn { position: relative; overflow: hidden; }
+.topbar .file-btn input { position: absolute; left: 0; top: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+
+/* ===== 收盘价主图 ===== */
+.price-section {
+  margin: 8px 16px; padding: 10px 14px;
+  background: #161b22; border: 0.5px solid #30363d; border-radius: 8px;
+}
+.price-section .label { font-size: 11px; color: #8b949e; margin-bottom: 6px; }
+
+/* ===== 行配对布局 ===== */
+.ind-row {
+  display: grid; grid-template-columns: 210px 1fr; gap: 0;
+  margin: 0 16px 6px; border: 0.5px solid #30363d; border-radius: 8px; overflow: hidden;
+}
+.param-side {
+  background: #161b22; padding: 12px 14px;
+  border-right: 0.5px solid #30363d;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.param-head { display: flex; align-items: center; justify-content: space-between; }
+.ind-name { font-weight: 600; font-size: 14px; }
+.ind-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px; white-space: nowrap;
+}
+.tag-purple { background: #1f1f3a; color: #a5a0ee; }
+.tag-teal   { background: #0d3329; color: #5dcaa5; }
+.tag-amber  { background: #3a2e0d; color: #fac775; }
+.tag-coral  { background: #3a1d10; color: #f0997b; }
+
+.slider-row { display: flex; align-items: center; gap: 8px; }
+.slider-row label { font-size: 11px; color: #8b949e; width: 44px; flex-shrink: 0; }
+.slider-row .val { font-size: 11px; font-weight: 600; min-width: 28px; text-align: right; color: #c9d1d9; }
+input[type=range] {
+  flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+  background: #30363d; border-radius: 2px; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none; appearance: none;
+  width: 12px; height: 12px; border-radius: 50%; background: #58a6ff; cursor: pointer;
+}
+input[type=range]::-moz-range-thumb {
+  width: 12px; height: 12px; border-radius: 50%; background: #58a6ff; cursor: pointer; border: none;
+}
+
+.preset-btns { display: flex; gap: 4px; margin-top: 2px; }
+.preset-btns button {
+  flex: 1; font-size: 10px; padding: 3px 4px; border-radius: 4px;
+  border: 0.5px solid #30363d; background: transparent; color: #8b949e; cursor: pointer;
+}
+.preset-btns button:hover { background: #21262d; }
+.preset-btns button.active {
+  border-color: #58a6ff; color: #58a6ff; background: rgba(88,166,255,0.1);
+}
+.reset-link { font-size: 10px; color: #6e7681; cursor: pointer; text-decoration: underline; text-align: right; }
+.reset-link:hover { color: #8b949e; }
+
+.chart-side {
+  padding: 8px 14px;
+  display: flex; flex-direction: column; justify-content: center;
+  background: #0d1117;
+}
+.chart-info { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+.chart-info b { color: #c9d1d9; }
+.chart-canvas-wrap { height: 100px; position: relative; }
+
+/* ===== 策略模块 ===== */
+.strategy-section {
+  margin: 10px 16px 6px; border: 0.5px solid #30363d; border-radius: 8px; overflow: hidden;
+}
+.strategy-header {
+  padding: 8px 14px; background: #161b22; border-bottom: 0.5px solid #30363d;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.strategy-header .s-title { font-weight: 600; font-size: 14px; }
+.strategy-header .s-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: #1a2332; color: #58a6ff;
+}
+.strategy-header .strat-select {
+  font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+}
+.strategy-params {
+  display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap;
+}
+.strategy-params .slider-row { display: flex; align-items: center; gap: 6px; }
+.strategy-params .slider-row label { font-size: 11px; color: #8b949e; }
+.strategy-params .slider-row .val { font-size: 11px; font-weight: 600; min-width: 20px; text-align: right; color: #c9d1d9; }
+.strategy-params .s-btn {
+  font-size: 11px; padding: 3px 10px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+}
+.strategy-params .s-btn:hover { background: #30363d; }
+.strat-ma-only { display: none; }
+.strat-turtle-only { display: none; }
+.strat-ma-only.active { display: flex; }
+.strat-turtle-only.active { display: flex; }
+
+.strategy-charts {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 0;
+}
+.s-chart-box {
+  padding: 8px 14px; border-right: 0.5px solid #30363d;
+}
+.s-chart-box:last-child { border-right: none; }
+.s-chart-label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+.s-chart-wrap { height: 140px; position: relative; }
+
+.strategy-metrics {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+  border-top: 0.5px solid #30363d; background: #0d1117;
+}
+.metric-cell {
+  padding: 8px 4px; text-align: center; border-right: 0.5px solid #30363d;
+  overflow: hidden;
+}
+.metric-cell:last-child { border-right: none; }
+.metric-name { font-size: 10px; color: #8b949e; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.metric-val { font-size: 13px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.metric-val.pos { color: #f85149; }
+.metric-val.neg { color: #3fb950; }
+.metric-val.neutral { color: #d29922; }
+
+/* ===== 底栏状态 ===== */
+.status-bar {
+  display: flex; margin: 0 16px 12px;
+  padding: 8px 14px; border: 0.5px solid #30363d; border-radius: 8px;
+  background: #161b22; font-size: 11px; justify-content: space-between; flex-wrap: wrap; gap: 4px;
+}
+.status-item { display: flex; align-items: center; gap: 5px; padding: 0 6px; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-gray { background: #8b949e; }
+.dot-red { background: #f85149; }
+.dot-green { background: #3fb950; }
+.dot-amber { background: #d29922; }
+
+/* ===== Chart.js 主题覆盖 ===== */
+canvas { font-family: "Microsoft YaHei", sans-serif !important; }
+
+/* ===== 实时数据 ===== */
+.fetch-btn {
+  font-size: 12px; padding: 4px 12px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #f0883e; background: #1a2332; color: #f0883e;
+  font-weight: 600; transition: all 0.2s;
+}
+.fetch-btn:hover { background: #2d1a0e; }
+.fetch-btn:disabled { opacity: 0.5; cursor: wait; }
+#stockCode { cursor: text; }
+.fetch-status {
+  font-size: 11px; color: #8b949e; margin-left: 4px;
+}
+.fetch-status.ok { color: #3fb950; }
+.fetch-status.err { color: #f85149; }
+.fetch-status.loading { color: #d29922; }
+
+/* ===== 机器学习模块 ===== */
+.ml-section {
+  margin: 10px 16px 6px; border: 0.5px solid #30363d; border-radius: 8px; overflow: hidden;
+}
+.ml-header {
+  padding: 8px 14px; background: #161b22; border-bottom: 0.5px solid #30363d;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.ml-header .ml-title { font-weight: 600; font-size: 14px; }
+.ml-header .ml-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: #1a2332; color: #58a6ff;
+}
+.ml-header .ml-select {
+  font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+}
+.ml-header .ml-btn {
+  font-size: 11px; padding: 3px 12px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+  transition: all 0.15s;
+}
+.ml-header .ml-btn:hover { background: #30363d; }
+.ml-header .ml-btn.train-btn { border-color: #f0883e; color: #f0883e; }
+.ml-header .ml-btn.train-btn:hover { background: #2d1a0e; }
+.ml-header .ml-btn.predict-btn { border-color: #3fb950; color: #3fb950; }
+.ml-header .ml-btn.predict-btn:hover { background: #0d2818; }
+.ml-header .ml-btn:disabled { opacity: 0.4; cursor: wait; }
+.ml-header .ml-status {
+  font-size: 11px; color: #8b949e; margin-left: auto;
+}
+.ml-status.ready { color: #8b949e; }
+.ml-status.training { color: #d29922; }
+.ml-status.done { color: #3fb950; }
+.ml-status.bull { color: #f85149; }  /* 涨 = 红 (中国惯例) */
+.ml-status.bear { color: #3fb950; }  /* 跌 = 绿 (中国惯例) */
+.ml-status.error { color: #f85149; }
+
+.ml-body {
+  display: grid; grid-template-columns: 220px 1fr 1fr; gap: 0;
+  border-top: 0.5px solid #30363d;
+}
+.ml-params {
+  background: #161b22; padding: 14px 16px 14px 16px;
+  border-right: 1px solid #30363d;
+  display: flex; flex-direction: column; gap: 9px;
+  overflow: hidden;
+}
+.ml-params .param-head { display: flex; align-items: center; justify-content: space-between; }
+.ml-params .ind-name { font-weight: 600; font-size: 14px; }
+.ml-params .ind-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px; white-space: nowrap;
+  background: #1a2332; color: #58a6ff;
+}
+.ml-params .slider-row { display: flex; align-items: center; gap: 8px; }
+.ml-params .slider-row label {
+  font-size: 11px; color: #8b949e; width: 40px; flex-shrink: 0;
+}
+.ml-params .slider-row input[type=range] { flex: 1; min-width: 0; }
+.ml-params .slider-row .val {
+  font-size: 12px; font-weight: 700; min-width: 38px;
+  text-align: center; color: #4fc3f7;
+  flex-shrink: 0; padding: 2px 0;
+  font-variant-numeric: tabular-nums;
+}
+.ml-params .ml-info-line {
+  font-size: 11px; color: #8b949e;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2px 0;
+  border-top: 0.5px solid #21262d;
+  margin-top: 4px;
+}
+.ml-params .ml-info-line:first-of-type { border-top: none; margin-top: 2px; }
+.ml-params .ml-info-line b { color: #4fc3f7; font-weight: 600; }
+
+.ml-chart-box {
+  padding: 10px 14px 8px 14px; border-right: 0.5px solid #30363d;
+  background: #0d1117;
+}
+.ml-chart-box:last-child { border-right: none; }
+.ml-chart-label { font-size: 11px; color: #8b949e; margin-bottom: 6px; padding-bottom: 2px; }
+.ml-chart-wrap { height: 120px; position: relative; }
+
+/* 混淆矩阵 */
+.cm-grid {
+  display: grid; grid-template-columns: auto 1fr 1fr; grid-template-rows: auto 1fr 1fr;
+  gap: 2px; height: 120px; padding: 4px 0;
+}
+.cm-corner { font-size: 9px; color: #6e7681; text-align: center; display: flex; align-items: center; justify-content: center; }
+.cm-col-label { font-size: 9px; color: #8b949e; text-align: center; }
+.cm-row-label { font-size: 9px; color: #8b949e; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; }
+.cm-cell {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  border-radius: 4px; border: 0.5px solid #30363d; font-size: 12px; font-weight: 700;
+}
+.cm-val { font-size: 16px; font-weight: 700; }
+.cm-pct { font-size: 9px; font-weight: 400; color: #8b949e; }
+
+.ml-metrics {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 0;
+  border-top: 0.5px solid #30363d; background: #0d1117;
+}
+.ml-metrics .metric-cell {
+  padding: 8px 4px; text-align: center; border-right: 0.5px solid #30363d;
+  overflow: hidden;
+}
+.ml-metrics .metric-cell:last-child { border-right: none; }
+
+.ml-signal-bar {
+  display: grid; grid-template-columns: auto 1fr 1fr; gap: 8px;
+  border-top: 0.5px solid #30363d; background: #161b22; padding: 8px 14px;
+  align-items: center;
+}
+.signal-label { font-size: 11px; color: #8b949e; white-space: nowrap; }
+.signal-up, .signal-down {
+  display: flex; align-items: center; gap: 6px;
+}
+.signal-bar-track {
+  flex: 1; height: 12px; border-radius: 3px; background: #30363d; overflow: hidden;
+}
+.signal-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+.signal-bar-fill.up { background: rgba(248,81,73,0.6); }
+.signal-bar-fill.down { background: rgba(63,185,80,0.6); }
+.signal-pct { font-size: 12px; font-weight: 700; min-width: 36px; text-align: right; }
+
+/* ===== AI综合交易建议 ===== */
+.advice-section {
+  margin: 10px 16px 6px; border: 0.5px solid #f0883e; border-radius: 8px; overflow: hidden;
+  background: #161b22;
+}
+.advice-header {
+  padding: 8px 14px; background: linear-gradient(135deg, #1a2332, #161b22); border-bottom: 0.5px solid #30363d;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.advice-header .adv-title { font-weight: 600; font-size: 14px; color: #f0883e; }
+.advice-header .adv-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: #2d1a0e; color: #f0883e;
+}
+.advice-header .adv-time { font-size: 10px; color: #8b949e; margin-left: auto; }
+
+/* 综合评分仪表 */
+.advice-dashboard {
+  display: grid; grid-template-columns: 200px 1fr; gap: 0;
+}
+
+/* 交易纪律原则 */
+.advice-principles {
+  padding: 10px 14px; background: #0d1117; border-bottom: 0.5px solid #30363d;
+  font-size: 11px; line-height: 1.7; color: #c9d1d9;
+}
+.advice-principles .p-title {
+  font-size: 12px; font-weight: 700; color: #f0883e; margin-bottom: 6px;
+  display: flex; align-items: center; gap: 4px;
+}
+.advice-principles .p-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;
+}
+.advice-principles .p-col {
+  padding: 6px 8px; border-radius: 4px; border: 0.5px solid #30363d;
+  background: #161b22;
+}
+.advice-principles .p-col h4 {
+  font-size: 11px; font-weight: 600; margin-bottom: 3px;
+  display: flex; align-items: center; gap: 3px;
+}
+.advice-principles .p-col.buy h4 { color: #f85149; }
+.advice-principles .p-col.sell h4 { color: #3fb950; }
+.advice-principles .p-col.risk h4 { color: #d29922; }
+.advice-principles .p-col ul {
+  list-style: none; padding: 0; margin: 0;
+}
+.advice-principles .p-col li {
+  font-size: 10px; color: #8b949e; padding: 1px 0; padding-left: 8px; position: relative;
+}
+.advice-principles .p-col li::before {
+  content: '▸'; position: absolute; left: 0; color: #6e7681;
+}
+.advice-principles .p-col li b { color: #c9d1d9; }
+
+/* 左侧信号灯 */
+.advice-signal {
+  padding: 16px 14px; border-right: 0.5px solid #30363d;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: #0d1117;
+}
+.signal-light {
+  width: 72px; height: 72px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700;
+  border: 2.5px solid; transition: all 0.3s;
+}
+.signal-light.buy {
+  background: rgba(248,81,73,0.12); border-color: #f85149; color: #f85149;
+  box-shadow: 0 0 12px rgba(248,81,73,0.3);
+}
+.signal-light.sell {
+  background: rgba(63,185,80,0.12); border-color: #3fb950; color: #3fb950;
+  box-shadow: 0 0 12px rgba(63,185,80,0.3);
+}
+.signal-light.hold {
+  background: rgba(210,153,34,0.12); border-color: #d29922; color: #d29922;
+  box-shadow: 0 0 12px rgba(210,153,34,0.2);
+}
+.signal-light.wait {
+  background: rgba(139,148,158,0.08); border-color: #8b949e; color: #8b949e;
+}
+.signal-score { font-size: 11px; color: #8b949e; text-align: center; }
+.signal-score b { font-size: 13px; }
+.signal-score .score-bar {
+  width: 140px; height: 6px; border-radius: 3px; background: #30363d; margin-top: 4px; overflow: hidden; position: relative;
+}
+.signal-score .score-fill {
+  position: absolute; left: 50%; top: 0; height: 100%; border-radius: 3px; transition: all 0.4s;
+}
+.score-fill.pos { background: #f85149; }
+.score-fill.neg { background: #3fb950; }
+
+/* 右侧详细建议 */
+.advice-content {
+  padding: 10px 14px; display: flex; flex-direction: column; gap: 6px;
+}
+.advice-action {
+  padding: 8px 12px; border-radius: 6px; font-size: 12px; line-height: 1.6;
+  border: 0.5px solid #30363d; background: #0d1117;
+}
+.advice-action strong { font-size: 13px; }
+.advice-action.buy-action { border-left: 3px solid #f85149; }
+.advice-action.sell-action { border-left: 3px solid #3fb950; }
+.advice-action.hold-action { border-left: 3px solid #d29922; }
+
+/* 信号汇总表 */
+.advice-signals-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px;
+}
+.sig-cell {
+  padding: 6px 8px; border-radius: 4px; border: 0.5px solid #30363d;
+  text-align: center; font-size: 10px;
+}
+.sig-cell .sig-name { color: #8b949e; margin-bottom: 2px; }
+.sig-cell .sig-val { font-size: 12px; font-weight: 700; }
+.sig-cell .sig-val.bull { color: #f85149; }
+.sig-cell .sig-val.bear { color: #3fb950; }
+.sig-cell .sig-val.neutral { color: #d29922; }
+.sig-cell.bull-bg { background: rgba(248,81,73,0.06); }
+.sig-cell.bear-bg { background: rgba(63,185,80,0.06); }
+
+/* 风险提示 */
+.advice-risk {
+  padding: 6px 12px; font-size: 10px; color: #8b949e; border-top: 0.5px solid #30363d;
+  background: #161b22; display: flex; gap: 12px; flex-wrap: wrap;
+}
+.advice-risk span { display: flex; align-items: center; gap: 3px; }
+
+/* 执行计划 */
+.exec-plan {
+  margin-top: 10px; padding: 10px 14px; border-radius: 6px; border-left: 4px solid;
+  font-size: 12px; line-height: 1.7;
+}
+.exec-plan.buy-plan { background: rgba(248,81,73,0.08); border-color: #f85149; }
+.exec-plan.sell-plan { background: rgba(63,185,80,0.08); border-color: #3fb950; }
+.exec-plan.hold-plan { background: rgba(210,153,34,0.08); border-color: #d29922; }
+.exec-plan.wait-plan { background: rgba(139,148,158,0.08); border-color: #8b949e; }
+.exec-head { font-weight: 700; font-size: 13px; margin-bottom: 6px; color: #c9d1d9; }
+.exec-row { display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.exec-label { color: #8b949e; min-width: 70px; display: inline-block; }
+.exec-row span { color: #c9d1d9; }
+
+/* ===== ML选股策略模块 (TASK6) ===== */
+.mls-section {
+  margin: 10px 16px 6px; border: 0.5px solid #30363d; border-radius: 8px; overflow: hidden;
+}
+.mls-header {
+  padding: 8px 14px; background: #161b22; border-bottom: 0.5px solid #30363d;
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+}
+.mls-header .mls-title { font-weight: 600; font-size: 14px; }
+.mls-header .mls-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px;
+  background: #1f1a3a; color: #b094e0;
+}
+.mls-header .mls-select {
+  font-size: 12px; padding: 3px 8px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #30363d; background: #21262d; color: #c9d1d9;
+}
+.mls-header .mls-slider-grp {
+  display: flex; align-items: center; gap: 4px;
+}
+.mls-header .mls-slider-grp label { font-size: 11px; color: #8b949e; white-space: nowrap; }
+.mls-header .mls-slider-grp .val { font-size: 11px; font-weight: 600; min-width: 28px; text-align: right; color: #c9d1d9; }
+.mls-header .mls-btn {
+  font-size: 11px; padding: 3px 12px; border-radius: 4px; cursor: pointer;
+  border: 0.5px solid #f0883e; background: #1a2332; color: #f0883e;
+  font-weight: 600; transition: all 0.15s;
+}
+.mls-header .mls-btn:hover { background: #2d1a0e; }
+.mls-header .mls-btn:disabled { opacity: 0.4; cursor: wait; }
+.mls-header .mls-status {
+  font-size: 11px; color: #8b949e; margin-left: auto;
+}
+.mls-status.ready { color: #8b949e; }
+.mls-status.running { color: #d29922; }
+.mls-status.done { color: #3fb950; }
+.mls-status.error { color: #f85149; }
+
+.mls-body {
+  display: grid; grid-template-columns: 210px 1fr; gap: 0;
+}
+.mls-params {
+  background: #161b22; padding: 12px 14px;
+  border-right: 0.5px solid #30363d;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.mls-params .param-head { display: flex; align-items: center; justify-content: space-between; }
+.mls-params .ind-name { font-weight: 600; font-size: 14px; }
+.mls-params .ind-tag {
+  font-size: 10px; padding: 1px 6px; border-radius: 3px; white-space: nowrap;
+  background: #1f1a3a; color: #b094e0;
+}
+.mls-info-line { font-size: 10px; color: #8b949e; }
+.mls-info-line b { color: #c9d1d9; }
+
+.mls-chart-area {
+  padding: 8px 14px; background: #0d1117;
+  display: flex; flex-direction: column; gap: 8px;
+}
+.mls-chart-row {
+  display: grid; gap: 8px;
+}
+.mls-chart-row.split { grid-template-columns: 1fr 1fr; }
+.mls-chart-box {
+  padding: 4px 0;
+}
+.mls-chart-box:first-child { grid-column: 1 / -1; }
+.mls-chart-label { font-size: 11px; color: #8b949e; margin-bottom: 4px; }
+.mls-chart-label b { color: #c9d1d9; }
+.mls-chart-wrap { height: 130px; position: relative; }
+.mls-chart-wrap.sm { height: 120px; }
+
+.mls-metrics {
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 0;
+  border-top: 0.5px solid #30363d; background: #0d1117;
+}
+.mls-metrics .metric-cell {
+  padding: 8px 4px; text-align: center; border-right: 0.5px solid #30363d;
+  overflow: hidden;
+}
+.mls-metrics .metric-cell:last-child { border-right: none; }
+
+/* ===== 全局滚动条美化 ===== */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #161b22; }
+::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #484f58; }
+
+/* ===== 表格行hover效果 ===== */
+.data-table tbody tr:hover { background: rgba(88,166,255,0.05) !important; }
+
+/* ===== 面板标题统一风格 ===== */
+.ml-section, .mls-section, .strategy-section, .advice-section {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ===== 指标值字体优化 ===== */
+.metric-val { letter-spacing: -0.3px; }
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div class="topbar">
+  <span class="title">股票技术指标分析工具</span>
+  <span class="spacer"></span>
+  <input type="text" id="stockCode" value="002594.SZ" placeholder="输入股票代码" onkeydown="if(event.key==='Enter')fetchStockData()">
+  <button class="fetch-btn" id="fetchBtn" onclick="fetchStockData()">获取实时数据</button>
+  <span class="fetch-status" id="fetchStatus"></span>
+  <select id="dateRange">
+    <option value="30">近1月</option>
+    <option value="90">近3月</option>
+    <option value="180">近6月</option>
+    <option value="365" selected>近1年</option>
+    <option value="9999">全部</option>
+  </select>
+  <select id="adjType" onchange="if(rawData.length>0&&rawDataSource==='api')fetchStockData()">
+    <option value="qfq" selected>前复权</option>
+    <option value="none">不复权</option>
+    <option value="hfq">后复权</option>
+  </select>
+  <label class="file-btn">
+    <button type="button">导入CSV</button>
+    <input type="file" id="csvFile" accept=".csv">
+  </label>
+</div>
+
+<!-- 收盘价主图 -->
+<div class="price-section">
+  <div class="label" id="priceLabel">收盘价走势 · 加载中...</div>
+  <div style="height:100px;position:relative"><canvas id="priceChart"></canvas></div>
+</div>
+
+<!-- RSI 行 -->
+<div class="ind-row">
+  <div class="param-side">
+    <div class="param-head"><span class="ind-name">RSI</span><span class="ind-tag tag-purple">相对强弱</span></div>
+    <div class="slider-row"><label>周期</label><input type="range" id="rsi_period" min="2" max="50" value="14"><span class="val" id="rsi_period_v">14</span></div>
+    <div class="slider-row"><label>超买线</label><input type="range" id="rsi_ob" min="60" max="90" value="70"><span class="val" id="rsi_ob_v">70</span></div>
+    <div class="slider-row"><label>超卖线</label><input type="range" id="rsi_os" min="10" max="40" value="30"><span class="val" id="rsi_os_v">30</span></div>
+    <div class="preset-btns">
+      <button onclick="setPreset('rsi','conservative')">保守</button>
+      <button onclick="setPreset('rsi','standard')" class="active">标准</button>
+      <button onclick="setPreset('rsi','aggressive')">激进</button>
+    </div>
+    <div class="reset-link" onclick="resetParams('rsi')">恢复默认</div>
+  </div>
+  <div class="chart-side">
+    <div class="chart-info" id="rsi_info">RSI 计算中...</div>
+    <div class="chart-canvas-wrap"><canvas id="rsiChart"></canvas></div>
+  </div>
+</div>
+
+<!-- MACD 行 -->
+<div class="ind-row">
+  <div class="param-side">
+    <div class="param-head"><span class="ind-name">MACD</span><span class="ind-tag tag-teal">趋势动量</span></div>
+    <div class="slider-row"><label>快线</label><input type="range" id="macd_fast" min="3" max="30" value="12"><span class="val" id="macd_fast_v">12</span></div>
+    <div class="slider-row"><label>慢线</label><input type="range" id="macd_slow" min="10" max="60" value="26"><span class="val" id="macd_slow_v">26</span></div>
+    <div class="slider-row"><label>信号线</label><input type="range" id="macd_signal" min="3" max="30" value="9"><span class="val" id="macd_signal_v">9</span></div>
+    <div class="preset-btns">
+      <button onclick="setPreset('macd','conservative')">保守</button>
+      <button onclick="setPreset('macd','standard')" class="active">标准</button>
+      <button onclick="setPreset('macd','aggressive')">激进</button>
+    </div>
+    <div class="reset-link" onclick="resetParams('macd')">恢复默认</div>
+  </div>
+  <div class="chart-side">
+    <div class="chart-info" id="macd_info">MACD 计算中...</div>
+    <div class="chart-canvas-wrap"><canvas id="macdChart"></canvas></div>
+  </div>
+</div>
+
+<!-- 布林带 行 -->
+<div class="ind-row">
+  <div class="param-side">
+    <div class="param-head"><span class="ind-name">BOLL</span><span class="ind-tag tag-amber">布林带</span></div>
+    <div class="slider-row"><label>周期</label><input type="range" id="boll_period" min="5" max="60" value="20"><span class="val" id="boll_period_v">20</span></div>
+    <div class="slider-row"><label>σ倍数</label><input type="range" id="boll_std" min="10" max="35" value="20"><span class="val" id="boll_std_v">2.0</span></div>
+    <div style="height:4px"></div>
+    <div class="preset-btns">
+      <button onclick="setPreset('boll','conservative')">保守</button>
+      <button onclick="setPreset('boll','standard')" class="active">标准</button>
+      <button onclick="setPreset('boll','aggressive')">激进</button>
+    </div>
+    <div class="reset-link" onclick="resetParams('boll')">恢复默认</div>
+  </div>
+  <div class="chart-side">
+    <div class="chart-info" id="boll_info">布林带计算中...</div>
+    <div class="chart-canvas-wrap"><canvas id="bollChart"></canvas></div>
+  </div>
+</div>
+
+<!-- KDJ 行 -->
+<div class="ind-row">
+  <div class="param-side">
+    <div class="param-head"><span class="ind-name">KDJ</span><span class="ind-tag tag-coral">随机指标</span></div>
+    <div class="slider-row"><label>RSV周期</label><input type="range" id="kdj_n" min="3" max="30" value="9"><span class="val" id="kdj_n_v">9</span></div>
+    <div class="slider-row"><label>K平滑</label><input type="range" id="kdj_m1" min="2" max="10" value="3"><span class="val" id="kdj_m1_v">3</span></div>
+    <div class="slider-row"><label>D平滑</label><input type="range" id="kdj_m2" min="2" max="10" value="3"><span class="val" id="kdj_m2_v">3</span></div>
+    <div class="preset-btns">
+      <button onclick="setPreset('kdj','conservative')">保守</button>
+      <button onclick="setPreset('kdj','standard')" class="active">标准</button>
+      <button onclick="setPreset('kdj','aggressive')">激进</button>
+    </div>
+    <div class="reset-link" onclick="resetParams('kdj')">恢复默认</div>
+  </div>
+  <div class="chart-side">
+    <div class="chart-info" id="kdj_info">KDJ 计算中...</div>
+    <div class="chart-canvas-wrap"><canvas id="kdjChart"></canvas></div>
+  </div>
+</div>
+
+<!-- 策略模块 -->
+<div class="strategy-section">
+  <div class="strategy-header">
+    <span class="s-title">交易策略</span>
+    <select class="strat-select" id="stratType" onchange="switchStrategy()">
+      <option value="ma">双均线策略</option>
+      <option value="turtle">海龟策略</option>
+      <option value="fusion">融合策略 (7模块AI评分)</option>
+    </select>
+    <span class="s-tag" id="stratTag">MA交叉 · 金叉买入 / 死叉卖出</span>
+    <div class="strategy-params">
+      <!-- 双均线参数 -->
+      <div class="slider-row strat-ma-only active" id="maParams">
+        <label>短均线</label><input type="range" id="strat_short" min="2" max="30" value="5"><span class="val" id="strat_short_v">5</span>
+        <label>长均线</label><input type="range" id="strat_long" min="5" max="60" value="15"><span class="val" id="strat_long_v">15</span>
+      </div>
+      <!-- 海龟参数 -->
+      <div class="slider-row strat-turtle-only" id="turtleParams">
+        <label>入场通道</label><input type="range" id="turtle_entry" min="5" max="55" value="20"><span class="val" id="turtle_entry_v">20</span>
+        <label>出场通道</label><input type="range" id="turtle_exit" min="3" max="30" value="10"><span class="val" id="turtle_exit_v">10</span>
+        <label>ATR周期</label><input type="range" id="turtle_atr" min="5" max="55" value="20"><span class="val" id="turtle_atr_v">20</span>
+        <label>止损倍数</label><input type="range" id="turtle_stop" min="5" max="40" value="20"><span class="val" id="turtle_stop_v">2.0</span>
+      </div>
+      <button class="s-btn" onclick="resetStrategy()">恢复默认</button>
+    </div>
+  </div>
+  <div class="strategy-charts">
+    <div class="s-chart-box">
+      <div class="s-chart-label" id="stratSignalLabel">策略信号图</div>
+      <div class="s-chart-wrap"><canvas id="stratSignalChart"></canvas></div>
+    </div>
+    <div class="s-chart-box">
+      <div class="s-chart-label" id="stratNavLabel">净值曲线 vs 基准</div>
+      <div class="s-chart-wrap"><canvas id="stratNavChart"></canvas></div>
+    </div>
+  </div>
+  <div class="strategy-metrics" id="stratMetrics">
+    <div class="metric-cell"><div class="metric-name">年化收益率</div><div class="metric-val" id="m_annReturn">-</div></div>
+    <div class="metric-cell"><div class="metric-name">最大回撤</div><div class="metric-val" id="m_mdd">-</div></div>
+    <div class="metric-cell"><div class="metric-name">年化波动率</div><div class="metric-val" id="m_vol">-</div></div>
+    <div class="metric-cell"><div class="metric-name">夏普比率</div><div class="metric-val" id="m_sharpe">-</div></div>
+    <div class="metric-cell"><div class="metric-name">胜率</div><div class="metric-val" id="m_winRate">-</div></div>
+    <div class="metric-cell"><div class="metric-name">盈亏比</div><div class="metric-val" id="m_plr">-</div></div>
+    <div class="metric-cell"><div class="metric-name">期望收益(R)</div><div class="metric-val" id="m_expR">-</div></div>
+  </div>
+  <!-- 参数优化结果（折叠） -->
+  <div class="strategy-params" style="margin-top:8px;border-top:1px solid #2a3a4a;padding-top:8px">
+    <button class="s-btn" onclick="toggleParamTable()" style="font-size:10px;background:#233040">参数对比 (10组)</button>
+    <div id="paramTableWrap" style="display:none;overflow-x:auto;margin-top:8px;max-height:300px">
+      <table class="data-table" style="font-size:10px;width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid #2a3a4a">
+          <th style="color:#4fc3f7;text-align:left;padding:4px 8px">策略 / 参数组合</th>
+          <th style="color:#4fc3f7;padding:4px 8px">总回报</th><th style="color:#4fc3f7;padding:4px 8px">最大回撤</th>
+          <th style="color:#4fc3f7;padding:4px 8px">夏普</th><th style="color:#4fc3f7;padding:4px 8px">胜率</th>
+          <th style="color:#4fc3f7;padding:4px 8px">超额收益</th>
+        </tr></thead>
+        <tbody style="color:#aabbcc">
+          <tr><td style="padding:3px 8px">MA3/15</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-15.23%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-18.45%</td><td style="text-align:right;padding:3px 8px">-0.812</td><td style="text-align:right;padding:3px 8px">12.5%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+5.1%</td></tr>
+          <tr><td style="padding:3px 8px">MA5/15 (默认)</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-16.74%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-19.75%</td><td style="text-align:right;padding:3px 8px">-0.925</td><td style="text-align:right;padding:3px 8px">11.1%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+3.6%</td></tr>
+          <tr><td style="padding:3px 8px">MA5/20</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-17.42%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-20.12%</td><td style="text-align:right;padding:3px 8px">-0.953</td><td style="text-align:right;padding:3px 8px">10.0%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+2.9%</td></tr>
+          <tr><td style="padding:3px 8px">MA10/30</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-18.96%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-22.34%</td><td style="text-align:right;padding:3px 8px">-1.051</td><td style="text-align:right;padding:3px 8px">8.3%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+1.4%</td></tr>
+          <tr style="border-top:1px solid #3a4a5a"><td style="padding:3px 8px">海龟 DC20 S2.0 (默认)</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-7.34%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-13.99%</td><td style="text-align:right;padding:3px 8px">-0.664</td><td style="text-align:right;padding:3px 8px">25.0%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+13.0%</td></tr>
+          <tr><td style="padding:3px 8px">海龟 DC15 S2.0</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-8.12%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-14.56%</td><td style="text-align:right;padding:3px 8px">-0.701</td><td style="text-align:right;padding:3px 8px">22.2%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+12.2%</td></tr>
+          <tr><td style="padding:3px 8px">海龟 DC20 S3.0</td><td style="color:#3fb950;text-align:right;padding:3px 8px">-5.96%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-12.45%</td><td style="text-align:right;padding:3px 8px">-0.542</td><td style="text-align:right;padding:3px 8px">28.6%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+14.4%</td></tr>
+          <tr style="border-top:2px solid #d29922;font-weight:bold;color:#f0883e"><td style="padding:3px 8px">7模块融合 (默认)</td><td style="color:#f85149;text-align:right;padding:3px 8px">-0.17%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-2.30%</td><td style="text-align:right;padding:3px 8px">-0.035</td><td style="text-align:right;padding:3px 8px">58.0%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+20.1%</td></tr>
+          <tr><td style="padding:3px 8px">融合 MA5/20 T20 S2.0</td><td style="color:#f85149;text-align:right;padding:3px 8px">-0.45%</td><td style="color:#f85149;text-align:right;padding:3px 8px">-2.85%</td><td style="text-align:right;padding:3px 8px">-0.051</td><td style="text-align:right;padding:3px 8px">55.0%</td><td style="color:#f85149;text-align:right;padding:3px 8px">+19.9%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 机器学习预测模块 -->
+<div class="ml-section">
+  <div class="ml-header">
+    <span class="ml-title">机器学习预测</span>
+    <select class="ml-select" id="mlModel">
+      <option value="logistic">逻辑回归</option>
+      <option value="tree">决策树</option>
+      <option value="forest" selected>随机森林</option>
+    </select>
+    <span class="ml-tag" id="mlTag">17特征 · 二分类(涨/跌)</span>
+    <button class="ml-btn train-btn" id="mlTrainBtn" onclick="mlTrain()">训练模型</button>
+    <button class="ml-btn predict-btn" id="mlPredictBtn" onclick="mlPredict()" disabled>预测信号</button>
+    <span class="ml-status ready" id="mlStatus">等待训练</span>
+  </div>
+  <div class="ml-body">
+    <!-- 参数面板 -->
+    <div class="ml-params">
+      <div class="param-head"><span class="ind-name">ML参数</span><span class="ind-tag">特征工程</span></div>
+      <div class="slider-row"><label>训练比</label><input type="range" id="ml_test_size" min="10" max="40" value="30"><span class="val" id="ml_test_size_v">30%</span></div>
+      <div class="slider-row"><label>树深度</label><input type="range" id="ml_depth" min="2" max="10" value="5"><span class="val" id="ml_depth_v">5</span></div>
+      <div class="slider-row"><label>树数量</label><input type="range" id="ml_n_trees" min="5" max="50" value="20"><span class="val" id="ml_n_trees_v">20</span></div>
+      <div class="ml-info-line">特征数: <b id="ml_n_features">17</b></div>
+      <div class="ml-info-line">训练样本: <b id="ml_n_samples">-</b></div>
+      <div class="ml-info-line">目标: <b>次日涨(1)/跌(0)</b></div>
+    </div>
+    <!-- ROC曲线 -->
+    <div class="ml-chart-box">
+      <div class="ml-chart-label" id="mlRocLabel">ROC曲线 · 未训练</div>
+      <div class="ml-chart-wrap"><canvas id="mlRocChart"></canvas></div>
+    </div>
+    <!-- 混淆矩阵 -->
+    <div class="ml-chart-box">
+      <div class="ml-chart-label" id="mlCmLabel">混淆矩阵 · 未训练</div>
+      <div style="display:flex;gap:20px;align-items:flex-start">
+      <div class="cm-grid" id="mlCmGrid" style="flex:1">
+        <div class="cm-corner"></div>
+        <div class="cm-col-label">预测跌</div>
+        <div class="cm-col-label">预测涨</div>
+        <div class="cm-row-label">实际跌</div>
+        <div class="cm-cell" id="cm_tn" style="background:rgba(63,185,80,0.08);color:#3fb950"><span class="cm-val">-</span><span class="cm-pct"></span></div>
+        <div class="cm-cell" id="cm_fp" style="background:rgba(248,81,73,0.08);color:#f85149"><span class="cm-val">-</span><span class="cm-pct"></span></div>
+        <div class="cm-row-label">实际涨</div>
+        <div class="cm-cell" id="cm_fn" style="background:rgba(248,81,73,0.08);color:#f85149"><span class="cm-val">-</span><span class="cm-pct"></span></div>
+        <div class="cm-cell" id="cm_tp" style="background:rgba(63,185,80,0.08);color:#3fb950"><span class="cm-val">-</span><span class="cm-pct"></span></div>
+      </div>
+      <div class="cm-grid" style="flex:1;opacity:0.7">
+        <div class="cm-corner"></div>
+        <div class="cm-col-label" style="color:#aaa">预测良</div>
+        <div class="cm-col-label" style="color:#aaa">预测恶</div>
+        <div class="cm-row-label" style="color:#aaa">实际良</div>
+        <div class="cm-cell" style="background:rgba(63,185,80,0.3);color:#3fb950"><span class="cm-val">66</span><span class="cm-pct">TN</span></div>
+        <div class="cm-cell" style="background:rgba(248,81,73,0.1);color:#f85149"><span class="cm-val">1</span><span class="cm-pct">FP</span></div>
+        <div class="cm-row-label" style="color:#aaa">实际恶</div>
+        <div class="cm-cell" style="background:rgba(248,81,73,0.1);color:#f85149"><span class="cm-val">1</span><span class="cm-pct">FN</span></div>
+        <div class="cm-cell" style="background:rgba(63,185,80,0.3);color:#3fb950"><span class="cm-val">103</span><span class="cm-pct">TP</span></div>
+      </div>
+      </div>
+      <div style="text-align:center;font-size:10px;color:#8b949e;margin-top:4px">
+        左侧: 股票数据（金融低信噪比 · AUC~0.58） &nbsp;|&nbsp; 右侧: 乳腺癌诊断数据（医学高信噪比 · 逻辑回归 AUC=0.994）
+      </div>
+    </div>
+  </div>
+  <!-- ML指标面板 -->
+  <div class="ml-metrics" id="mlMetrics">
+    <div class="metric-cell"><div class="metric-name">准确率</div><div class="metric-val neutral" id="mlm_acc">-</div></div>
+    <div class="metric-cell"><div class="metric-name">精确率</div><div class="metric-val neutral" id="mlm_prec">-</div></div>
+    <div class="metric-cell"><div class="metric-name">召回率</div><div class="metric-val neutral" id="mlm_rec">-</div></div>
+    <div class="metric-cell"><div class="metric-name">F1分数</div><div class="metric-val neutral" id="mlm_f1">-</div></div>
+    <div class="metric-cell"><div class="metric-name">AUC</div><div class="metric-val neutral" id="mlm_auc">-</div></div>
+  </div>
+  <!-- 特征重要性条形图 -->
+  <div class="ml-chart-box" id="mlFiBox" style="display:none">
+    <div class="ml-chart-label" id="mlFiLabel">特征重要性 · 未训练</div>
+    <div class="ml-chart-wrap" style="height:200px"><canvas id="mlFiChart"></canvas></div>
+  </div>
+  <!-- 预测信号条 -->
+  <div class="ml-signal-bar" id="mlSignalBar">
+    <span class="signal-label">明日预测:</span>
+    <div class="signal-up">
+      <span style="font-size:11px;color:#f85149">涨</span>
+      <div class="signal-bar-track"><div class="signal-bar-fill up" id="mlSigUp" style="width:0%"></div></div>
+      <span class="signal-pct" id="mlSigUpPct" style="color:#f85149">-</span>
+    </div>
+    <div class="signal-down">
+      <span style="font-size:11px;color:#3fb950">跌</span>
+      <div class="signal-bar-track"><div class="signal-bar-fill down" id="mlSigDown" style="width:0%"></div></div>
+      <span class="signal-pct" id="mlSigDownPct" style="color:#3fb950">-</span>
+    </div>
+  </div>
+</div>
+
+<!-- ML选股策略模块 (TASK6) -->
+<div class="mls-section">
+  <div class="mls-header">
+    <span class="mls-title">ML选股策略</span>
+    <select class="mls-select" id="mlsModel">
+      <option value="tree" selected>决策树回归</option>
+      <option value="linear">线性回归</option>
+    </select>
+    <span class="mls-tag" id="mlsTag">12因子 · 未来20日收益预测</span>
+    <div class="mls-slider-grp">
+      <label>预测周期</label>
+      <input type="range" id="mls_period" min="5" max="40" value="20" style="width:70px">
+      <span class="val" id="mls_period_v">20日</span>
+    </div>
+    <div class="mls-slider-grp">
+      <label>训练窗口</label>
+      <input type="range" id="mls_window" min="60" max="250" value="120" style="width:80px">
+      <span class="val" id="mls_window_v">120日</span>
+    </div>
+    <div class="mls-slider-grp">
+      <label>信号阈值</label>
+      <input type="range" id="mls_threshold" min="0" max="100" value="0" style="width:60px">
+      <span class="val" id="mls_threshold_v">0%</span>
+    </div>
+    <button class="mls-btn" id="mlsRunBtn" onclick="mlsRun()">运行回测</button>
+    <span class="mls-status ready" id="mlsStatus">等待运行</span>
+  </div>
+  <div class="mls-body">
+    <!-- 参数面板 -->
+    <div class="mls-params">
+      <div class="param-head"><span class="ind-name">策略参数</span><span class="ind-tag">回归选股</span></div>
+      <div class="mls-info-line">因子数: <b id="mls_n_features">12</b></div>
+      <div class="mls-info-line">训练样本: <b id="mls_n_samples">-</b></div>
+      <div class="mls-info-line">回测周期: <b id="mls_n_periods">-</b></div>
+      <div class="mls-info-line">信号数: <b id="mls_n_signals">-</b></div>
+      <div class="mls-info-line">模型: <b id="mls_model_name">决策树回归</b></div>
+      <div class="mls-info-line">目标: <b>未来N日收益率</b></div>
+      <div class="mls-info-line">基准: <b>买入持有</b></div>
+    </div>
+    <!-- 图表区 -->
+    <div class="mls-chart-area">
+      <!-- 信号图（全宽） -->
+      <div class="mls-chart-box" style="grid-column:1/-1">
+        <div class="mls-chart-label" id="mlsSignalLabel">图1: 价格走势 + ML信号标注 · 未运行</div>
+        <div class="mls-chart-wrap"><canvas id="mlsSignalChart"></canvas></div>
+      </div>
+      <!-- 净值图 + 因子重要性（并排） -->
+      <div class="mls-chart-row split">
+        <div class="mls-chart-box">
+          <div class="mls-chart-label" id="mlsNavLabel">图2: 累计净值 · 未运行</div>
+          <div class="mls-chart-wrap sm"><canvas id="mlsNavChart"></canvas></div>
+        </div>
+        <div class="mls-chart-box">
+          <div class="mls-chart-label" id="mlsFiLabel">图3: 因子重要性 · 未运行</div>
+          <div class="mls-chart-wrap sm"><canvas id="mlsFiChart"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- 7项绩效指标 -->
+  <div class="mls-metrics" id="mlsMetrics">
+    <div class="metric-cell"><div class="metric-name">累计收益</div><div class="metric-val neutral" id="mlsm_cumret">-</div></div>
+    <div class="metric-cell"><div class="metric-name">年化收益</div><div class="metric-val neutral" id="mlsm_annret">-</div></div>
+    <div class="metric-cell"><div class="metric-name">最大回撤</div><div class="metric-val neutral" id="mlsm_mdd">-</div></div>
+    <div class="metric-cell"><div class="metric-name">波动率</div><div class="metric-val neutral" id="mlsm_vol">-</div></div>
+    <div class="metric-cell"><div class="metric-name">夏普比率</div><div class="metric-val neutral" id="mlsm_sharpe">-</div></div>
+    <div class="metric-cell"><div class="metric-name">超额收益</div><div class="metric-val neutral" id="mlsm_alpha">-</div></div>
+    <div class="metric-cell"><div class="metric-name">胜率</div><div class="metric-val neutral" id="mlsm_winrate">-</div></div>
+  </div>
+</div>
+
+<!-- AI综合交易建议 -->
+<div class="advice-section">
+  <div class="advice-header">
+    <span class="adv-title">AI综合交易建议</span>
+    <span class="adv-tag">多维度信号融合</span>
+    <span class="adv-time" id="adviceTime">-</span>
+  </div>
+  <!-- 交易纪律原则 -->
+  <div class="advice-principles">
+    <div class="p-title">📋 交易纪律原则（严格执行，知行合一）</div>
+    <div class="p-grid">
+      <div class="p-col buy">
+        <h4>▲ 买入纪律</h4>
+        <ul>
+          <li>综合评分 ≥ <b>+4</b> 且看涨信号 ≥ 3个，方可买入</li>
+          <li><b>15:00前</b>提交买入 → 当日收盘价确认；15:00后 → 次交易日确认</li>
+          <li>分批建仓：首仓50%，确认后加至80%，满仓不超80%</li>
+          <li>只在金叉/突破上轨时入场，<b>不追涨</b>、不抄底</li>
+          <li>买入当日不可卖出（T+1），需设好止损位</li>
+        </ul>
+      </div>
+      <div class="p-col sell">
+        <h4>✕ 卖出纪律</h4>
+        <ul>
+          <li>综合评分 ≤ <b>-4</b> 或死叉形成，立即卖出</li>
+          <li><b>15:00前</b>提交卖出 → 当日收盘价确认成交</li>
+          <li>跌破止损位 <b>无条件平仓</b>，不抱侥幸，不等反弹</li>
+          <li>超买信号叠加(J>100且RSI>70)，分批获利了结</li>
+          <li>卖出资金T+1日到账可用，盈利绝不止损变加仓</li>
+        </ul>
+      </div>
+      <div class="p-col risk">
+        <h4>⚡ 风险管理</h4>
+        <ul>
+          <li>单只个股仓位 <b>不超总资金70%</b>，留有现金储备</li>
+          <li>止损幅度控制在 <b>5%-8%</b>，单笔亏损不超总资金2%</li>
+          <li>评分在 <b>-1.5 ~ +1.5</b> 之间为观望区，空仓等待</li>
+          <li>信号矛盾时(看涨看跌各半)，<b>优先保住本金</b>，不操作</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="advice-dashboard">
+    <!-- 左侧信号灯 -->
+    <div class="advice-signal">
+      <div class="signal-light wait" id="adviceLight">等待</div>
+      <div class="signal-score">
+        综合评分: <b id="adviceScore">0</b> / 10
+        <div class="score-bar"><div class="score-fill" id="adviceScoreFill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <!-- 右侧详细建议 -->
+    <div class="advice-content">
+      <!-- 信号汇总 -->
+      <div class="advice-signals-grid" id="adviceSignals">
+        <div class="sig-cell"><div class="sig-name">RSI</div><div class="sig-val neutral" id="adv_rsi">-</div></div>
+        <div class="sig-cell"><div class="sig-name">MACD</div><div class="sig-val neutral" id="adv_macd">-</div></div>
+        <div class="sig-cell"><div class="sig-name">BOLL</div><div class="sig-val neutral" id="adv_boll">-</div></div>
+        <div class="sig-cell"><div class="sig-name">KDJ</div><div class="sig-val neutral" id="adv_kdj">-</div></div>
+        <div class="sig-cell"><div class="sig-name">策略持仓</div><div class="sig-val neutral" id="adv_strat">-</div></div>
+      </div>
+      <!-- 风险指标速览 -->
+      <div class="advice-signals-grid" style="grid-template-columns:repeat(4,1fr)" id="adviceRiskGrid">
+        <div class="sig-cell"><div class="sig-name">VaR(95%)</div><div class="sig-val neutral" id="adv_var">-</div></div>
+        <div class="sig-cell"><div class="sig-name">CVaR(95%)</div><div class="sig-val neutral" id="adv_cvar">-</div></div>
+        <div class="sig-cell"><div class="sig-name">滚动夏普(60d)</div><div class="sig-val neutral" id="adv_rsharpe">-</div></div>
+        <div class="sig-cell"><div class="sig-name">最大回撤</div><div class="sig-val neutral" id="adv_dd">-</div></div>
+      </div>
+      <!-- 操作建议 -->
+      <div class="advice-action hold-action" id="adviceAction">
+        <strong>建议: 观望</strong> — 等待数据加载完成后自动生成交易建议...
+      </div>
+      <!-- ML/MLS附加建议 -->
+      <div class="advice-action" id="adviceML" style="display:none;border-left:3px solid #58a6ff">
+        <strong style="color:#58a6ff">机器学习参考: </strong><span id="adviceMLText">-</span>
+      </div>
+    </div>
+  </div>
+  <!-- 风险提示 -->
+  <div class="advice-risk">
+    <span>⚠ 以上建议由技术指标+策略+ML模型综合生成，仅供参考</span>
+    <span>📊 数据截至: <b id="adviceDataDate">-</b></span>
+    <span>💰 建议仓位: <b id="advicePosition">-</b></span>
+    <span>🛑 止损参考: <b id="adviceStopLoss">-</b></span>
+  </div>
+</div>
+
+<!-- 底栏状态 -->
+<div class="status-bar" id="statusBar"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ==================== 嵌入CSV数据 ====================
+const EMBEDDED_CSV = `ts_code,trade_date,open,high,low,close,pre_close,change,pct_chg,vol,amount
+002594.SZ,20250707,108.44,108.87,108.19,108.24,109.03,-0.7900000000000063,-0.72,88207.72,2901015.557
+002594.SZ,20250708,107.72,108.63,107.29,107.68,108.24,-0.5599999999999881,-0.52,116918.14,3825413.668
+002594.SZ,20250709,107.68,108.11,107.31,107.32,107.68,-0.36000000000001364,-0.33,121633.11,3969384.13
+002594.SZ,20250710,107.32,107.42,105.03,105.82,107.32,-1.5,-1.4,210022.06,6741345.468
+002594.SZ,20250711,105.38,107.67,105.09,106.7,105.82,0.8800000000000097,0.83,168269.83,5456832.018
+002594.SZ,20250714,106.7,106.7,104.61,104.91,106.7,-1.7900000000000063,-1.68,172309.14,5502331.854
+002594.SZ,20250715,104.82,107.06,104.75,106.42,104.91,1.5100000000000051,1.44,162790.94,5252631.322
+002594.SZ,20250716,106.42,107.36,106.42,106.64,106.42,0.21999999999999886,0.21,110758.35,3594544.238
+002594.SZ,20250717,107.06,108.28,106.76,108.05,106.64,1.4099999999999966,1.32,156891.35,5138610.961
+002594.SZ,20250718,108.42,108.54,107.14,108.41,108.05,0.35999999999999943,0.33,136866.49,4482466.755
+002594.SZ,20250721,108.04,110.06,107.8,110.06,108.41,1.6500000000000057,1.52,153945.03,5102459.146
+002594.SZ,20250722,110.35,112.66,109.76,112.56,110.06,2.5,2.27,214164.17,7227731.007
+002594.SZ,20250723,112.69,112.99,111.01,111.36,112.56,-1.2000000000000028,-1.07,158907.35,5395840.274
+002594.SZ,20250724,111.37,114.15,111.22,112.89,111.36,1.5300000000000011,1.37,189063.27,6489370.096
+002594.SZ,20250725,112.33,112.46,110.35,111.32,112.89,-1.5700000000000074,-1.39,157040.76,5307866.611
+002594.SZ,20250728,111.32,111.7,110.53,111.01,111.32,-0.30999999999998806,-0.28,117056.7,3947000.994
+002594.SZ,20250729,112.01,112.5,109.77,111.42,111.01,0.4099999999999966,0.37,387359.84,4322742.015
+002594.SZ,20250730,108.05,111.16,107.12,108.7,111.42,-2.719999999999999,-2.44,524834.27,5743878.668
+002594.SZ,20250731,108.2,108.2,105.0,105.24,108.7,-3.460000000000008,-3.18,599499.43,6344900.791
+002594.SZ,20250801,104.95,106.24,104.36,105.8,105.24,0.5600000000000023,0.53,362336.92,3816659.558
+002594.SZ,20250804,104.0,105.14,102.57,104.88,105.8,-0.9200000000000017,-0.87,412936.94,4293903.59
+002594.SZ,20250805,104.88,105.21,103.78,104.86,104.88,-0.01999999999999602,-0.02,338349.86,3539636.64
+002594.SZ,20250806,104.86,105.0,103.9,104.35,104.86,-0.5100000000000051,-0.49,305619.6,3184784.993
+002594.SZ,20250807,104.27,106.43,104.16,105.33,104.35,0.980000000000004,0.94,428762.98,4526612.773
+002594.SZ,20250808,105.0,105.03,103.91,103.93,105.33,-1.3999999999999915,-1.33,326614.61,3405317.252
+002594.SZ,20250811,103.88,105.66,103.23,105.52,103.93,1.5899999999999892,1.53,356697.9,3741329.572
+002594.SZ,20250812,105.4,106.43,104.7,105.67,105.52,0.15000000000000568,0.14,312195.04,3302639.096
+002594.SZ,20250813,106.29,107.65,105.84,106.83,105.67,1.1599999999999966,1.1,459830.14,4908744.877
+002594.SZ,20250814,107.37,107.5,105.79,106.37,106.83,-0.45999999999999375,-0.43,419547.93,4478119.017
+002594.SZ,20250815,105.85,106.64,105.32,106.07,106.37,-0.30000000000001137,-0.28,361353.46,3831047.052
+002594.SZ,20250818,105.66,109.49,105.66,108.37,106.07,2.3000000000000114,2.17,619251.73,6680761.816
+002594.SZ,20250819,108.67,108.92,107.18,107.63,108.37,-0.7400000000000091,-0.68,389735.19,4205349.329
+002594.SZ,20250820,107.18,108.26,106.01,108.25,107.63,0.6200000000000045,0.58,385053.45,4130459.252
+002594.SZ,20250821,107.8,108.83,107.0,107.1,108.25,-1.1500000000000057,-1.06,449463.78,4843670.255
+002594.SZ,20250822,107.11,110.97,107.11,110.66,107.1,3.5600000000000023,3.32,763120.05,8351469.726
+002594.SZ,20250825,111.31,112.49,110.31,111.61,110.66,0.9500000000000028,0.86,611627.58,6803182.883
+002594.SZ,20250826,111.75,114.69,110.71,113.75,111.61,2.1400000000000006,1.92,692915.85,7850511.029
+002594.SZ,20250827,113.96,114.06,110.66,110.68,113.75,-3.069999999999993,-2.7,689746.93,7761766.931
+002594.SZ,20250828,109.39,110.19,107.11,109.32,110.68,-1.3600000000000136,-1.23,762521.99,8278465.956
+002594.SZ,20250829,108.88,116.59,108.12,114.06,109.32,4.740000000000009,4.34,1144901.94,12973326.091
+002594.SZ,20250901,108.5,111.48,108.5,109.7,114.06,-4.359999999999999,-3.82,1329867.38,14546890.247
+002594.SZ,20250902,108.79,111.1,108.6,110.02,109.7,0.3199999999999932,0.29,773224.1,8495472.755
+002594.SZ,20250903,110.5,110.73,107.01,107.21,110.02,-2.8100000000000023,-2.55,735223.27,7975948.716
+002594.SZ,20250904,106.59,107.09,103.71,104.0,107.21,-3.2099999999999937,-2.99,815740.74,8588835.881
+002594.SZ,20250905,103.86,107.5,103.11,107.26,104.0,3.260000000000005,3.13,787523.85,8307907.948
+002594.SZ,20250908,106.15,107.13,105.51,106.25,107.26,-1.0100000000000051,-0.94,555923.45,5910440.232
+002594.SZ,20250909,106.0,107.2,105.27,105.49,106.25,-0.7600000000000051,-0.72,381636.22,4049249.507
+002594.SZ,20250910,105.52,106.45,105.02,105.2,105.49,-0.28999999999999204,-0.27,322368.95,3401353.898
+002594.SZ,20250911,105.25,106.6,104.89,106.59,105.2,1.3900000000000006,1.32,537781.49,5683446.689
+002594.SZ,20250912,106.6,107.58,105.9,105.91,106.59,-0.6800000000000068,-0.64,455910.18,4859782.579
+002594.SZ,20250915,106.0,110.85,106.0,108.7,105.91,2.7900000000000063,2.63,974804.07,10620465.041
+002594.SZ,20250916,109.0,109.0,107.22,107.8,108.7,-0.9000000000000057,-0.83,533160.21,5753437.964
+002594.SZ,20250917,108.2,112.0,108.2,110.99,107.8,3.1899999999999977,2.96,981239.71,10827682.692
+002594.SZ,20250918,110.99,112.8,108.56,109.71,110.99,-1.2800000000000011,-1.15,934013.8,10362193.293
+002594.SZ,20250919,109.8,110.8,109.0,109.09,109.71,-0.6199999999999903,-0.57,472977.48,5188176.204
+002594.SZ,20250922,108.87,108.91,107.15,107.99,109.09,-1.1000000000000085,-1.01,491559.23,5293961.578
+002594.SZ,20250923,107.45,107.69,104.64,105.6,107.99,-2.3900000000000006,-2.21,650962.62,6888232.046
+002594.SZ,20250924,105.0,105.83,104.0,105.71,105.6,0.10999999999999943,0.1,548162.27,5758922.305
+002594.SZ,20250925,105.34,108.8,104.87,107.5,105.71,1.7900000000000063,1.69,693482.04,7421942.405
+002594.SZ,20250926,107.45,111.23,107.0,107.29,107.5,-0.20999999999999375,-0.2,756612.07,8250492.997
+002594.SZ,20250929,107.0,109.14,106.39,108.61,107.29,1.3199999999999932,1.23,613983.68,6621874.267
+002594.SZ,20250930,108.19,109.98,107.76,109.21,108.61,0.5999999999999943,0.55,567755.5,6200518.75
+002594.SZ,20251009,108.67,112.48,108.07,110.6,109.21,1.3900000000000006,1.27,1008721.97,11196004.667
+002594.SZ,20251010,110.55,110.55,107.58,107.79,110.6,-2.809999999999988,-2.54,590102.53,6420415.513
+002594.SZ,20251013,105.0,105.98,104.1,105.69,107.79,-2.1000000000000085,-1.95,744429.8,7841774.365
+002594.SZ,20251014,106.68,109.36,105.62,105.99,105.69,0.29999999999999716,0.28,767786.27,8244228.529
+002594.SZ,20251015,106.45,107.51,105.5,107.1,105.99,1.1099999999999994,1.05,475791.33,5063179.652
+002594.SZ,20251016,107.0,109.3,106.51,106.96,107.1,-0.14000000000000057,-0.13,523096.38,5628738.804
+002594.SZ,20251017,106.6,106.63,104.26,104.43,106.96,-2.529999999999987,-2.37,625724.94,6576614.911
+002594.SZ,20251020,105.22,105.63,104.08,104.52,104.43,0.0899999999999892,0.09,355614.52,3721699.722
+002594.SZ,20251021,104.69,105.07,104.24,104.76,104.52,0.2400000000000091,0.23,299074.19,3133789.475
+002594.SZ,20251022,104.1,104.32,103.37,103.78,104.76,-0.980000000000004,-0.94,357874.19,3715302.136
+002594.SZ,20251023,103.3,103.73,102.0,103.69,103.78,-0.09000000000000341,-0.09,378603.42,3889661.811
+002594.SZ,20251024,103.98,104.37,103.61,103.76,103.69,0.07000000000000739,0.07,305542.68,3173964.302
+002594.SZ,20251027,104.0,104.97,103.88,104.01,103.76,0.25,0.24,345987.84,3607756.848
+002594.SZ,20251028,104.02,104.32,103.5,103.72,104.01,-0.29000000000000625,-0.28,265415.83,2755526.047
+002594.SZ,20251029,103.73,105.18,103.0,104.52,103.72,0.7999999999999972,0.77,397340.4,4128608.369
+002594.SZ,20251030,104.0,104.86,103.5,103.61,104.52,-0.9099999999999966,-0.87,358989.45,3733925.603
+002594.SZ,20251031,101.0,101.32,100.0,100.79,103.61,-2.819999999999993,-2.72,637052.59,6418551.106
+002594.SZ,20251103,100.79,100.99,98.5,99.6,100.79,-1.190000000000012,-1.18,551670.21,5472679.665
+002594.SZ,20251104,99.0,99.54,97.71,97.8,99.6,-1.7999999999999972,-1.81,435017.04,4274197.474
+002594.SZ,20251105,96.66,96.66,94.73,95.8,97.8,-2.0,-2.04,587215.1,5617215.879
+002594.SZ,20251106,95.58,97.75,95.4,97.52,95.8,1.7199999999999989,1.8,402003.67,3897723.836
+002594.SZ,20251107,97.0,98.15,96.83,97.2,97.52,-0.3199999999999932,-0.33,322560.73,3145817.991
+002594.SZ,20251110,97.35,100.35,97.35,99.39,97.2,2.1899999999999977,2.25,554876.9,5513238.813
+002594.SZ,20251111,99.5,99.78,98.14,98.71,99.39,-0.6800000000000068,-0.68,319857.88,3161124.11
+002594.SZ,20251112,98.8,98.99,97.54,97.77,98.71,-0.9399999999999977,-0.95,260643.35,2555847.684
+002594.SZ,20251113,97.01,100.5,97.01,99.83,97.77,2.0600000000000023,2.11,579990.22,5759429.264
+002594.SZ,20251114,99.0,100.5,98.33,98.37,99.83,-1.4599999999999937,-1.46,342984.66,3396134.916
+002594.SZ,20251117,97.8,98.59,97.25,98.08,98.37,-0.29000000000000625,-0.29,207247.59,2029207.779
+002594.SZ,20251118,97.54,97.85,96.02,96.49,98.08,-1.5900000000000034,-1.62,304756.45,2949162.765
+002594.SZ,20251119,96.4,96.66,95.01,95.17,96.49,-1.3199999999999932,-1.37,348292.35,3327809.284
+002594.SZ,20251120,95.17,95.5,93.5,93.61,95.17,-1.5600000000000023,-1.64,391810.87,3692348.085
+002594.SZ,20251121,92.49,94.39,91.7,92.7,93.61,-0.9099999999999966,-0.97,451713.13,4182916.493
+002594.SZ,20251124,93.1,94.41,92.2,93.93,92.7,1.230000000000004,1.33,327302.13,3064736.739
+002594.SZ,20251125,94.0,95.38,93.7,93.91,93.93,-0.020000000000010232,-0.02,277488.87,2620855.758
+002594.SZ,20251126,94.75,95.44,94.45,95.09,93.91,1.1800000000000068,1.26,306576.97,2914626.393
+002594.SZ,20251127,94.6,95.16,94.22,94.29,95.09,-0.7999999999999972,-0.84,202279.96,1915349.541
+002594.SZ,20251128,94.6,95.23,94.2,95.17,94.29,0.8799999999999955,0.93,219350.62,2080615.71
+002594.SZ,20251201,95.39,96.3,95.14,95.77,95.17,0.5999999999999943,0.63,233712.72,2237016.414
+002594.SZ,20251202,96.42,97.8,96.25,96.62,95.77,0.8500000000000085,0.89,359217.46,3483571.735
+002594.SZ,20251203,96.64,96.65,94.89,95.05,96.62,-1.5700000000000074,-1.62,231572.84,2207429.346
+002594.SZ,20251204,94.92,95.29,94.2,95.24,95.05,0.18999999999999773,0.2,166141.64,1576759.405
+002594.SZ,20251205,95.29,96.22,94.71,95.98,95.24,0.7400000000000091,0.78,211618.47,2021250.209
+002594.SZ,20251208,96.21,97.15,96.21,96.53,95.98,0.5499999999999972,0.57,247804.98,2397261.754
+002594.SZ,20251209,96.21,96.66,95.7,96.03,96.53,-0.5,-0.52,163227.02,1568057.388
+002594.SZ,20251210,95.6,96.65,94.9,96.47,96.03,0.4399999999999977,0.46,198402.24,1902988.18
+002594.SZ,20251211,96.98,97.12,95.85,96.23,96.47,-0.23999999999999488,-0.25,250907.67,2422448.208
+002594.SZ,20251212,96.2,97.7,95.65,97.0,96.23,0.769999999999996,0.8,554620.88,5390456.375
+002594.SZ,20251215,96.55,97.16,95.53,95.53,97.0,-1.4699999999999989,-1.52,293300.99,2824248.327
+002594.SZ,20251216,95.5,95.7,94.14,94.25,95.53,-1.2800000000000011,-1.34,258767.71,2450336.536
+002594.SZ,20251217,94.5,95.7,93.68,95.21,94.25,0.9599999999999937,1.02,272825.0,2584139.145
+002594.SZ,20251218,94.39,94.6,93.5,93.53,95.21,-1.6799999999999926,-1.76,252797.34,2376126.962
+002594.SZ,20251219,94.0,95.27,93.73,94.23,93.53,0.7000000000000028,0.75,272067.94,2573037.718
+002594.SZ,20251222,94.7,95.36,94.25,94.37,94.23,0.14000000000000057,0.15,206234.82,1952361.858
+002594.SZ,20251223,94.5,95.5,94.5,94.81,94.37,0.4399999999999977,0.47,236617.41,2247679.864
+002594.SZ,20251224,94.8,94.8,94.05,94.42,94.81,-0.39000000000000057,-0.41,192809.95,1819358.259
+002594.SZ,20251225,94.43,95.23,94.12,94.84,94.42,0.4200000000000017,0.44,182201.63,1725723.851
+002594.SZ,20251226,95.28,101.45,95.25,100.01,94.84,5.170000000000002,5.45,1020958.95,10178557.962
+002594.SZ,20251229,100.5,101.3,99.6,100.21,100.01,0.19999999999998863,0.2,519166.96,5209488.142
+002594.SZ,20251230,99.26,100.15,98.74,99.75,100.21,-0.45999999999999375,-0.46,318756.38,3174697.986
+002594.SZ,20251231,99.98,100.2,97.38,97.72,99.75,-2.030000000000001,-2.04,402858.87,3955310.311
+002594.SZ,20260105,98.4,99.48,97.9,98.11,97.72,0.39000000000000057,0.4,382625.21,3762797.878
+002594.SZ,20260106,98.22,100.5,98.12,99.99,98.11,1.8799999999999955,1.92,521784.86,5185026.166
+002594.SZ,20260107,99.96,99.96,97.06,97.6,99.99,-2.3900000000000006,-2.39,560848.81,5502570.731
+002594.SZ,20260108,97.2,97.2,96.33,96.88,97.6,-0.7199999999999989,-0.74,300654.75,2908439.429
+002594.SZ,20260109,97.05,97.95,96.9,97.01,96.88,0.13000000000000966,0.13,350340.58,3412630.185
+002594.SZ,20260112,97.01,98.0,96.3,97.47,97.01,0.45999999999999375,0.47,425257.19,4125432.529
+002594.SZ,20260113,99.0,99.6,96.88,97.19,97.47,-0.28000000000000114,-0.29,498722.72,4905229.942
+002594.SZ,20260114,96.81,97.74,95.51,96.1,97.19,-1.0900000000000034,-1.12,514749.73,4975154.616
+002594.SZ,20260115,96.08,96.64,95.6,95.67,96.1,-0.4299999999999926,-0.45,295635.46,2835803.09
+002594.SZ,20260116,96.7,97.44,95.6,95.86,95.67,0.18999999999999773,0.2,384588.02,3705328.916
+002594.SZ,20260119,96.81,97.3,95.77,96.19,95.86,0.3299999999999983,0.34,334927.15,3227653.862
+002594.SZ,20260120,96.22,96.26,94.68,94.74,96.19,-1.4500000000000028,-1.51,389149.47,3699337.566
+002594.SZ,20260121,94.01,94.94,94.0,94.1,94.74,-0.6400000000000006,-0.68,308333.93,2910327.666
+002594.SZ,20260122,94.72,95.13,93.89,94.12,94.1,0.020000000000010232,0.02,291014.25,2741536.605
+002594.SZ,20260123,94.24,94.36,93.51,93.65,94.12,-0.46999999999999886,-0.5,383302.72,3598066.421
+002594.SZ,20260126,93.65,93.66,92.5,92.63,93.65,-1.0200000000000102,-1.09,375459.61,3485372.554
+002594.SZ,20260127,92.67,92.99,91.8,91.81,92.63,-0.8199999999999932,-0.89,362980.92,3340756.01
+002594.SZ,20260128,91.8,93.5,90.01,93.34,91.81,1.5300000000000011,1.67,715566.18,6553150.013
+002594.SZ,20260129,92.66,92.92,91.61,92.31,93.34,-1.0300000000000011,-1.1,371824.81,3423462.525
+002594.SZ,20260130,92.27,92.27,90.7,90.89,92.31,-1.4200000000000017,-1.54,329175.6,3001871.204
+002594.SZ,20260202,88.0,89.09,86.97,87.05,90.89,-3.8400000000000034,-4.22,646973.85,5676850.727
+002594.SZ,20260203,87.2,87.4,85.88,87.37,87.05,0.3200000000000074,0.37,377826.85,3275997.179
+002594.SZ,20260204,86.99,89.33,86.45,89.14,87.37,1.769999999999996,2.03,376504.71,3322530.225
+002594.SZ,20260205,88.5,91.23,88.33,90.11,89.14,0.9699999999999989,1.09,354240.31,3184480.193
+002594.SZ,20260206,89.39,90.66,89.0,89.82,90.11,-0.29000000000000625,-0.32,247087.79,2217096.985
+002594.SZ,20260209,90.5,90.65,89.83,90.06,89.82,0.2400000000000091,0.27,208179.51,1875980.039
+002594.SZ,20260210,90.0,91.57,89.84,90.81,90.06,0.75,0.83,267604.81,2434219.975
+002594.SZ,20260211,90.88,92.95,90.88,92.28,90.81,1.4699999999999989,1.62,396949.59,3662117.779
+002594.SZ,20260212,92.29,92.35,91.08,91.16,92.28,-1.1200000000000045,-1.21,230313.32,2106032.227
+002594.SZ,20260213,90.05,91.09,89.88,90.27,91.16,-0.8900000000000006,-0.98,217338.87,1963579.417
+002594.SZ,20260224,91.98,91.99,90.61,90.87,90.27,0.6000000000000085,0.66,206444.58,1879888.761
+002594.SZ,20260225,90.89,92.79,90.89,91.45,90.87,0.5799999999999983,0.64,324780.1,2985714.58
+002594.SZ,20260226,91.4,91.4,89.61,89.85,91.45,-1.6000000000000085,-1.75,291018.94,2619922.211
+002594.SZ,20260227,89.4,89.94,89.1,89.32,89.85,-0.5300000000000011,-0.59,219340.83,1962319.079
+002594.SZ,20260302,88.0,97.25,87.72,96.79,89.32,7.470000000000013,8.36,1435136.88,13507227.574
+002594.SZ,20260303,96.39,96.99,93.99,95.21,96.79,-1.5800000000000125,-1.63,865741.45,8272503.576
+002594.SZ,20260304,95.2,96.8,93.7,95.99,95.21,0.7800000000000011,0.82,700968.92,6674964.518
+002594.SZ,20260305,96.8,96.82,93.89,94.47,95.99,-1.519999999999996,-1.58,552439.97,5235746.09
+002594.SZ,20260306,96.0,96.0,93.25,93.62,94.47,-0.8499999999999943,-0.9,503540.37,4743654.925
+002594.SZ,20260309,93.62,98.0,93.0,97.52,93.62,3.8999999999999915,4.17,1093408.99,10562485.735
+002594.SZ,20260310,97.18,97.49,96.08,96.6,97.52,-0.9200000000000017,-0.94,507462.43,4907397.251
+002594.SZ,20260311,96.75,100.34,95.67,99.22,96.6,2.6200000000000045,2.71,903743.75,8925093.668
+002594.SZ,20260312,99.23,100.69,98.7,99.1,99.22,-0.12000000000000455,-0.12,502523.57,4995016.177
+002594.SZ,20260313,99.0,100.79,98.3,99.67,99.1,0.5700000000000074,0.58,519764.82,5199004.697
+002594.SZ,20260316,99.67,105.0,98.79,104.62,99.67,4.950000000000003,4.97,1087814.26,11184164.655
+002594.SZ,20260317,104.63,106.66,102.71,102.87,104.62,-1.75,-1.67,841388.6,8793237.613
+002594.SZ,20260318,102.82,102.82,100.05,101.69,102.87,-1.1800000000000068,-1.15,617996.48,6257459.33
+002594.SZ,20260319,100.99,103.88,100.47,102.31,101.69,0.6200000000000045,0.61,531059.39,5450382.395
+002594.SZ,20260320,102.0,104.45,101.56,103.03,102.31,0.7199999999999989,0.7,628783.24,6495105.104
+002594.SZ,20260323,103.87,111.82,103.18,107.63,103.03,4.599999999999994,4.46,1782445.51,19284919.429
+002594.SZ,20260324,108.4,108.4,104.93,106.64,107.63,-0.9899999999999949,-0.92,921446.17,9784806.491
+002594.SZ,20260325,106.72,107.66,105.28,106.6,106.64,-0.04000000000000625,-0.04,662664.89,7061311.678
+002594.SZ,20260326,106.62,107.68,102.7,103.14,106.6,-3.4599999999999937,-3.25,828120.67,8655663.075
+002594.SZ,20260327,103.99,105.89,102.75,105.3,103.14,2.1599999999999966,2.09,658454.64,6893710.026
+002594.SZ,20260330,103.51,108.0,103.25,106.05,105.3,0.75,0.71,727557.23,7713482.118
+002594.SZ,20260331,107.0,108.49,105.1,105.25,106.05,-0.7999999999999972,-0.75,588659.01,6283345.063
+002594.SZ,20260401,105.9,106.5,102.37,102.65,105.25,-2.5999999999999943,-2.47,715198.11,7383168.512
+002594.SZ,20260402,102.49,103.48,100.5,101.65,102.65,-1.0,-0.97,604349.47,6153958.208
+002594.SZ,20260403,101.8,102.3,99.0,99.01,101.65,-2.6400000000000006,-2.6,491745.16,4921224.066
+002594.SZ,20260407,99.5,99.77,97.45,97.98,99.01,-1.0300000000000011,-1.04,379697.46,3731963.03
+002594.SZ,20260408,98.5,101.28,98.11,101.22,97.98,3.239999999999995,3.31,562818.4,5621410.29
+002594.SZ,20260409,100.21,100.21,98.81,99.03,101.22,-2.1899999999999977,-2.16,379062.93,3764528.22
+002594.SZ,20260410,99.39,102.2,99.03,101.67,99.03,2.6400000000000006,2.67,605731.35,6130392.652
+002594.SZ,20260413,101.57,104.99,100.81,104.25,101.67,2.5799999999999983,2.54,663135.98,6887089.022
+002594.SZ,20260414,103.0,104.19,102.5,103.82,104.25,-0.4300000000000068,-0.41,543342.83,5614541.232
+002594.SZ,20260415,103.82,104.77,102.5,103.03,103.82,-0.789999999999992,-0.76,428719.17,4431952.62
+002594.SZ,20260416,103.28,105.97,103.28,105.54,103.03,2.510000000000005,2.44,643661.46,6763624.067
+002594.SZ,20260417,104.99,105.46,103.12,103.78,105.54,-1.7600000000000051,-1.67,442047.63,4595671.718
+002594.SZ,20260420,103.78,103.95,102.62,102.91,103.78,-0.8700000000000045,-0.84,383676.96,3957213.043
+002594.SZ,20260421,102.91,103.19,101.33,101.53,102.91,-1.3799999999999955,-1.34,432257.69,4398233.495
+002594.SZ,20260422,101.11,102.38,100.6,101.62,101.53,0.09000000000000341,0.09,343733.37,3485648.244
+002594.SZ,20260423,101.57,101.59,99.01,99.98,101.62,-1.6400000000000006,-1.61,492163.75,4915554.212
+002594.SZ,20260424,99.91,99.91,98.7,99.46,99.98,-0.5200000000000102,-0.52,337738.78,3348015.919
+002594.SZ,20260427,100.0,104.0,99.88,102.34,99.46,2.8800000000000097,2.9,601670.2,6169037.082
+002594.SZ,20260428,101.85,103.3,101.34,101.48,102.34,-0.8599999999999994,-0.84,361550.04,3687912.785
+002594.SZ,20260429,101.47,105.64,101.0,105.4,101.48,3.9200000000000017,3.86,1056557.81,11021927.729
+002594.SZ,20260430,104.54,105.45,102.37,102.98,105.4,-2.4200000000000017,-2.3,600978.53,6206126.903
+002594.SZ,20260506,101.7,101.89,100.2,100.75,102.98,-2.230000000000004,-2.17,670487.11,6746578.445
+002594.SZ,20260507,101.05,101.26,100.01,100.46,100.75,-0.29000000000000625,-0.29,468845.96,4708289.851
+002594.SZ,20260508,100.47,101.0,99.8,100.02,100.46,-0.4399999999999977,-0.44,382157.5,3823821.998
+002594.SZ,20260511,100.02,100.73,99.0,100.44,100.02,0.4200000000000017,0.42,482810.04,4812920.715
+002594.SZ,20260512,99.97,100.1,99.1,99.23,100.44,-1.2099999999999937,-1.2,353441.29,3514548.836
+002594.SZ,20260513,99.23,99.25,97.81,98.6,99.23,-0.6300000000000097,-0.63,456193.52,4481395.884
+002594.SZ,20260514,99.0,100.0,98.45,98.73,98.6,0.13000000000000966,0.13,339179.88,3361151.176
+002594.SZ,20260515,98.0,98.03,96.26,96.3,98.73,-2.430000000000007,-2.46,466217.23,4507893.858
+002594.SZ,20260518,95.34,95.94,94.3,94.51,96.3,-1.789999999999992,-1.86,354613.17,3359745.463
+002594.SZ,20260519,94.51,96.08,93.8,96.0,94.51,1.4899999999999949,1.58,296184.39,2822346.576
+002594.SZ,20260520,95.3,95.49,93.3,93.36,96.0,-2.6400000000000006,-2.75,415009.93,3900216.299
+002594.SZ,20260521,93.41,96.2,93.41,93.51,93.36,0.15000000000000568,0.16,373949.74,3540792.199
+002594.SZ,20260522,93.55,94.19,92.61,93.75,93.51,0.23999999999999488,0.26,268591.77,2510615.944
+002594.SZ,20260525,95.0,97.21,95.0,95.96,93.75,2.2099999999999937,2.36,405995.16,3900848.662
+002594.SZ,20260526,95.8,96.92,94.51,96.55,95.96,0.5900000000000034,0.61,386524.35,3720039.551
+002594.SZ,20260527,96.0,97.27,94.66,95.22,96.55,-1.3299999999999983,-1.38,362373.56,3467882.77
+002594.SZ,20260528,95.22,95.99,94.03,95.88,95.22,0.6599999999999966,0.69,314589.76,2991315.17
+002594.SZ,20260529,98.9,99.5,96.13,96.18,95.88,0.30000000000001137,0.31,606293.93,5901286.621
+002594.SZ,20260601,96.18,96.22,93.6,93.65,96.18,-2.530000000000001,-2.63,445980.76,4207350.43
+002594.SZ,20260602,96.0,96.88,94.31,96.76,93.65,3.1099999999999994,3.32,554964.17,5321331.038
+002594.SZ,20260603,96.0,96.0,94.5,94.82,96.76,-1.940000000000012,-2.0,370433.74,3514157.745
+002594.SZ,20260604,93.6,94.39,93.1,93.44,94.82,-1.3799999999999955,-1.46,318711.74,2982999.607
+002594.SZ,20260605,93.52,94.0,92.3,93.01,93.44,-0.4299999999999926,-0.46,339968.97,3159266.076
+002594.SZ,20260608,91.0,92.02,90.3,91.19,93.01,-1.8200000000000074,-1.96,316843.95,2885879.183
+002594.SZ,20260609,91.22,91.92,90.03,91.89,91.19,0.7000000000000028,0.77,281926.95,2562232.96109
+002594.SZ,20260610,91.0,91.0,90.1,90.31,91.89,-1.5799999999999983,-1.72,241286.6,2182297.13741
+002594.SZ,20260611,90.1,90.8,88.88,89.8,90.31,-0.5100000000000051,-0.56,315087.34,2821436.89548
+002594.SZ,20260612,89.9,91.78,89.25,91.6,89.8,1.7999999999999972,2.0,385351.78,3497028.50468
+002594.SZ,20260615,91.61,91.9,90.4,90.82,91.6,-0.7800000000000011,-0.85,312979.08,2847656.61685
+002594.SZ,20260616,90.35,90.5,89.5,89.64,90.82,-1.1799999999999926,-1.3,336018.68,3017362.61274
+002594.SZ,20260617,89.0,89.3,87.0,87.47,89.64,-2.1700000000000017,-2.42,495267.11,4335318.6677
+002594.SZ,20260618,87.0,89.33,86.08,88.13,87.47,0.6599999999999966,0.75,435789.76,3820166.90992
+002594.SZ,20260622,87.0,87.9,84.6,87.59,88.13,-0.539999999999992,-0.61,637242.2,5467321.88639
+002594.SZ,20260623,86.91,88.32,84.75,85.0,87.59,-2.5900000000000034,-2.96,466216.68,4016365.83408
+002594.SZ,20260624,84.5,84.7,82.78,83.3,85.0,-1.7000000000000028,-2.0,455735.3,3803649.80554
+002594.SZ,20260625,82.8,83.81,81.34,82.2,83.3,-1.0999999999999943,-1.32,556432.08,4579273.3254
+002594.SZ,20260626,81.51,81.8,78.2,78.2,82.2,-4.0,-4.87,663208.02,5267490.27775
+002594.SZ,20260629,78.2,80.95,77.6,79.64,78.2,1.4399999999999977,1.84,523707.29,4160734.87256
+002594.SZ,20260630,79.58,80.55,78.58,79.7,79.64,0.060000000000002274,0.08,382043.09,3031865.04919
+002594.SZ,20260701,79.9,81.65,78.55,80.66,79.7,0.9599999999999937,1.2,503176.61,4035250.99665
+002594.SZ,20260702,81.9,85.67,81.9,83.57,80.66,2.9099999999999966,3.61,825046.21,6956783.9553
+002594.SZ,20260703,83.73,88.88,83.6,88.47,83.57,4.900000000000006,5.86,838981.62,7298140.28407
+002594.SZ,20260706,88.52,88.95,86.61,87.54,88.47,-0.9299999999999926,-1.05,485828.28,4263991.76189
+002594.SZ,20260707,87.66,88.81,85.87,86.26,87.54,-1.2800000000000011,-1.46,389469.58,3378987.2892`;
+
+// ==================== 全局状态 ====================
+let rawData = [];      // {trade_date, open, high, low, close, vol}
+let charts = {};       // Chart.js实例
+let debounceTimers = {};
+
+const DEFAULTS = {
+  rsi:  { period: 14, ob: 70, os: 30 },
+  macd: { fast: 12, slow: 26, signal: 9 },
+  boll: { period: 20, std: 20 },  // std=20 → 2.0
+  kdj:  { n: 9, m1: 3, m2: 3 }
+};
+
+const PRESETS = {
+  rsi: {
+    conservative: { period: 21, ob: 80, os: 20 },
+    standard:     { period: 14, ob: 70, os: 30 },
+    aggressive:   { period: 7,  ob: 75, os: 25 }
+  },
+  macd: {
+    conservative: { fast: 19, slow: 39, signal: 9 },
+    standard:     { fast: 12, slow: 26, signal: 9 },
+    aggressive:   { fast: 5,  slow: 13, signal: 5 }
+  },
+  boll: {
+    conservative: { period: 30, std: 25 },
+    standard:     { period: 20, std: 20 },
+    aggressive:   { period: 10, std: 15 }
+  },
+  kdj: {
+    conservative: { n: 14, m1: 3, m2: 3 },
+    standard:     { n: 9,  m1: 3, m2: 3 },
+    aggressive:   { n: 5,  m1: 2, m2: 2 }
+  }
+};
+
+// ==================== CSV解析 ====================
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  const header = lines[0].replace(/^\ufeff/, '').split(',');
+  const idx = {};
+  ['trade_date','open','high','low','close','vol'].forEach(k => {
+    idx[k] = header.indexOf(k);
+  });
+  const data = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    if (cols.length < 5) continue;
+    const td = String(cols[idx.trade_date]).replace(/-/g, '');
+    data.push({
+      trade_date: td,
+      dateLabel: td.slice(0,4)+'-'+td.slice(4,6)+'-'+td.slice(6,8),
+      open: parseFloat(cols[idx.open]),
+      high: parseFloat(cols[idx.high]),
+      low: parseFloat(cols[idx.low]),
+      close: parseFloat(cols[idx.close]),
+      vol: parseFloat(cols[idx.vol]) || 0
+    });
+  }
+  return data;
+}
+
+// ==================== 实时数据获取 (东方财富JSONP) ====================
+let rawDataSource = 'csv'; // 'csv' or 'api'
+
+function buildSecid(code) {
+  // 去除后缀和空格
+  code = code.trim().toUpperCase().replace(/\.(SH|SZ|BJ)$/, '');
+  // 6开头→上海(1.), 0/3开头→深圳(0.), 8/4开头→北交所(0.)
+  if (code.startsWith('6')) return '1.' + code;
+  if (code.startsWith('0') || code.startsWith('3')) return '0.' + code;
+  if (code.startsWith('8') || code.startsWith('4')) return '0.' + code;
+  // 默认深圳
+  return '0.' + code;
+}
+
+function getAdjCode() {
+  const adj = document.getElementById('adjType').value;
+  if (adj === 'qfq') return 1;
+  if (adj === 'hfq') return 2;
+  return 0; // 不复权
+}
+
+function fetchStockData() {
+  const code = document.getElementById('stockCode').value.trim();
+  if (!code) { setFetchStatus('请输入股票代码', 'err'); return; }
+
+  const secid = buildSecid(code);
+  const fqt = getAdjCode();
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.textContent = '获取中...';
+  setFetchStatus(`正在获取 ${code} 数据...`, 'loading');
+
+  // JSONP callback
+  const cbName = 'emCallback_' + Date.now();
+  const script = document.createElement('script');
+
+  // 东方财富日K线历史数据API (push2his不是push2)
+  // klt=101(日线), fqt=1(前复权), lmt=300(取300条)
+  // beg/end: 日期范围, cb: JSONP回调函数名
+  const now = new Date();
+  const begDate = (now.getFullYear() - 2) + '0101';
+  const endDate = now.getFullYear() + 
+    String(now.getMonth() + 1).padStart(2, '0') + 
+    String(now.getDate()).padStart(2, '0');
+  const url = `http://push2his.eastmoney.com/api/qt/stock/kline/get` +
+    `?secid=${secid}` +
+    `&fields1=f1,f2,f3,f4,f5,f6` +
+    `&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61` +
+    `&klt=101&fqt=${fqt}&beg=${begDate}&end=${endDate}&lmt=300` +
+    `&cb=${cbName}`;
+
+  let timeout = setTimeout(() => {
+    cleanup();
+    setFetchStatus('请求超时，请检查股票代码或网络', 'err');
+    btn.disabled = false;
+    btn.textContent = '获取实时数据';
+  }, 10000);
+
+  function cleanup() {
+    clearTimeout(timeout);
+    delete window[cbName];
+    if (script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  window[cbName] = function(resp) {
+    cleanup();
+
+    if (!resp || !resp.data || !resp.data.klines || resp.data.klines.length === 0) {
+      setFetchStatus('未获取到数据，请检查股票代码', 'err');
+      btn.disabled = false;
+      btn.textContent = '获取实时数据';
+      return;
+    }
+
+    // 解析东方财富数据
+    // klines格式: "date,open,close,high,low,volume,amount,amplitude,changePct,change,turnover"
+    const klines = resp.data.klines;
+    const data = [];
+    for (let i = 0; i < klines.length; i++) {
+      const parts = klines[i].split(',');
+      if (parts.length < 7) continue;
+      const td = parts[0].replace(/-/g, '');
+      data.push({
+        trade_date: td,
+        dateLabel: parts[0],
+        open: parseFloat(parts[1]),
+        close: parseFloat(parts[2]),
+        high: parseFloat(parts[3]),
+        low: parseFloat(parts[4]),
+        vol: parseFloat(parts[5]) || 0
+      });
+    }
+
+    if (data.length < 10) {
+      setFetchStatus(`仅获取到${data.length}条数据，数据不足`, 'err');
+      btn.disabled = false;
+      btn.textContent = '获取实时数据';
+      return;
+    }
+
+    rawData = data;
+    rawDataSource = 'api';
+
+    // 更新股票名称显示
+    const name = resp.data.name || '';
+    const displayCode = code.includes('.') ? code : code;
+    document.getElementById('priceLabel').textContent =
+      `收盘价走势 · ${name} ${displayCode} · ${data.length}条 · ${data[0].dateLabel} ~ ${data[data.length-1].dateLabel}`;
+
+    setFetchStatus(`✓ ${name || displayCode} · ${data.length}条数据 · ${data[data.length-1].dateLabel}最新`, 'ok');
+    btn.disabled = false;
+    btn.textContent = '获取实时数据';
+
+    recalcAll();
+  };
+
+  script.onerror = function() {
+    cleanup();
+    setFetchStatus('网络错误，请稍后重试', 'err');
+    btn.disabled = false;
+    btn.textContent = '获取实时数据';
+  };
+
+  script.src = url;
+  document.body.appendChild(script);
+}
+
+function setFetchStatus(msg, type) {
+  const el = document.getElementById('fetchStatus');
+  el.textContent = msg;
+  el.className = 'fetch-status' + (type ? ' ' + type : '');
+}
+const Indicators = {
+  // EMA递推: EMA_t = α*price + (1-α)*EMA_{t-1}, α = 2/(span+1)
+  ema(values, span) {
+    const alpha = 2 / (span + 1);
+    const result = new Array(values.length).fill(NaN);
+    let prev = values[0];
+    result[0] = values[0];
+    for (let i = 1; i < values.length; i++) {
+      prev = alpha * values[i] + (1 - alpha) * prev;
+      result[i] = prev;
+    }
+    return result;
+  },
+
+  // Wilder平滑: α = 1/period (等价于 ewm(alpha=1/period, adjust=False))
+  wilderEwm(values, period) {
+    const alpha = 1 / period;
+    const result = new Array(values.length).fill(NaN);
+    let prev = values[0];
+    result[0] = values[0];
+    for (let i = 1; i < values.length; i++) {
+      prev = alpha * values[i] + (1 - alpha) * prev;
+      result[i] = prev;
+    }
+    return result;
+  },
+
+  rsi(close, period) {
+    const n = close.length;
+    const gain = new Array(n).fill(0);
+    const loss = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) {
+      const delta = close[i] - close[i - 1];
+      gain[i] = Math.max(delta, 0);
+      loss[i] = Math.max(-delta, 0);
+    }
+    const avgGain = this.wilderEwm(gain, period);
+    const avgLoss = this.wilderEwm(loss, period);
+    const rsi = new Array(n).fill(NaN);
+    for (let i = 0; i < n; i++) {
+      if (i < period) { rsi[i] = NaN; continue; }
+      if (avgLoss[i] === 0) {
+        rsi[i] = 100;
+      } else {
+        const rs = avgGain[i] / avgLoss[i];
+        rsi[i] = 100 - 100 / (1 + rs);
+      }
+    }
+    return rsi;
+  },
+
+  macd(close, fast, slow, signal) {
+    const emaFast = this.ema(close, fast);
+    const emaSlow = this.ema(close, slow);
+    const dif = close.map((_, i) => emaFast[i] - emaSlow[i]);
+    const dea = this.ema(dif, signal);
+    const hist = dif.map((d, i) => (d - dea[i]) * 2);
+    return { dif, dea, hist };
+  },
+
+  boll(close, period, numStd) {
+    const n = close.length;
+    const mid = new Array(n).fill(NaN);
+    const upper = new Array(n).fill(NaN);
+    const lower = new Array(n).fill(NaN);
+    for (let i = period - 1; i < n; i++) {
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += close[j];
+      const mean = sum / period;
+      let varSum = 0;
+      for (let j = i - period + 1; j <= i; j++) varSum += (close[j] - mean) ** 2;
+      const std = Math.sqrt(varSum / period); // ddof=0
+      mid[i] = mean;
+      upper[i] = mean + numStd * std;
+      lower[i] = mean - numStd * std;
+    }
+    return { upper, mid, lower };
+  },
+
+  kdj(high, low, close, n, m1, m2) {
+    const len = close.length;
+    const rsv = new Array(len).fill(50); // fillna(50) 等价
+    for (let i = 0; i < len; i++) {
+      if (i < n - 1) { rsv[i] = 50; continue; }
+      let hh = -Infinity, ll = Infinity;
+      for (let j = i - n + 1; j <= i; j++) {
+        if (high[j] > hh) hh = high[j];
+        if (low[j] < ll) ll = low[j];
+      }
+      const denom = hh - ll;
+      rsv[i] = denom > 0 ? (close[i] - ll) / denom * 100 : 50;
+    }
+    // K = ewm(rsv, alpha=1/m1) → span=m1
+    const k = this.wilderEwm(rsv, m1);
+    const d = this.wilderEwm(k, m2);
+    const j = k.map((kv, i) => 3 * kv - 2 * d[i]);
+    return { k, d, j };
+  }
+};
+
+// ==================== Chart.js暗色主题 ====================
+Chart.defaults.color = '#8b949e';
+Chart.defaults.borderColor = '#30363d';
+Chart.defaults.font.family = '"Microsoft YaHei", sans-serif';
+
+const gridStyle = { color: 'rgba(48,54,61,0.5)', drawBorder: false };
+
+// ==================== 图表初始化 ====================
+function initCharts() {
+  // 收盘价
+  charts.price = new Chart(document.getElementById('priceChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [{
+      label: '收盘价', data: [],
+      borderColor: '#58a6ff', backgroundColor: 'rgba(88,166,255,0.08)',
+      borderWidth: 1.2, pointRadius: 0, fill: true, tension: 0.1
+    }] },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 8, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+
+  // RSI
+  charts.rsi = new Chart(document.getElementById('rsiChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: 'RSI', data: [], borderColor: '#a5a0ee', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '超买', data: [], borderColor: '#f85149', borderWidth: 0.5, borderDash: [3,2], pointRadius: 0, fill: false },
+      { label: '超卖', data: [], borderColor: '#3fb950', borderWidth: 0.5, borderDash: [3,2], pointRadius: 0, fill: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, min: 0, max: 100, ticks: { font: { size: 9 } } } }
+    }
+  });
+
+  // MACD
+  charts.macd = new Chart(document.getElementById('macdChart'), {
+    data: { labels: [], datasets: [
+      { type: 'line', label: 'DIF', data: [], borderColor: '#3fb950', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { type: 'line', label: 'DEA', data: [], borderColor: '#d29922', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { type: 'bar', label: 'MACD', data: [], backgroundColor: [], borderWidth: 0 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+
+  // BOLL
+  charts.boll = new Chart(document.getElementById('bollChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: '上轨', data: [], borderColor: 'rgba(218,165,32,0.4)', borderWidth: 0.8, pointRadius: 0, fill: false },
+      { label: '中轨', data: [], borderColor: 'rgba(218,165,32,0.6)', borderWidth: 0.8, borderDash: [2,2], pointRadius: 0, fill: false },
+      { label: '下轨', data: [], borderColor: 'rgba(218,165,32,0.4)', borderWidth: 0.8, pointRadius: 0,
+        fill: '-2', backgroundColor: 'rgba(218,165,32,0.06)' },
+      { label: '收盘价', data: [], borderColor: '#f0997b', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+
+  // KDJ
+  charts.kdj = new Chart(document.getElementById('kdjChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: 'K', data: [], borderColor: '#3fb950', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'D', data: [], borderColor: '#d29922', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'J', data: [], borderColor: '#f0997b', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+}
+
+// ==================== 数据更新与渲染 ====================
+function getVisibleData() {
+  const range = parseInt(document.getElementById('dateRange').value);
+  if (range >= rawData.length || range >= 9999) return rawData;
+  return rawData.slice(-range);
+}
+
+function updatePriceChart(data) {
+  const labels = data.map(d => d.dateLabel);
+  const closes = data.map(d => d.close);
+  charts.price.data.labels = labels;
+  charts.price.data.datasets[0].data = closes;
+  charts.price.update('none');
+  document.getElementById('priceLabel').textContent =
+    `收盘价走势 · ${data.length}个交易日 · ${data[0].dateLabel} 至 ${data[data.length-1].dateLabel}`;
+}
+
+function updateRSI(data) {
+  const period = parseInt(document.getElementById('rsi_period').value);
+  const ob = parseInt(document.getElementById('rsi_ob').value);
+  const os = parseInt(document.getElementById('rsi_os').value);
+  const close = data.map(d => d.close);
+  const rsi = Indicators.rsi(close, period);
+  const labels = data.map(d => d.dateLabel);
+
+  charts.rsi.data.labels = labels;
+  charts.rsi.data.datasets[0].data = rsi;
+  charts.rsi.data.datasets[1].data = close.map(() => ob);
+  charts.rsi.data.datasets[2].data = close.map(() => os);
+  charts.rsi.update('none');
+
+  const lastRSI = rsi[rsi.length - 1];
+  const validRSI = rsi.filter(v => !isNaN(v));
+  const obCount = validRSI.filter(v => v > ob).length;
+  const osCount = validRSI.filter(v => v < os).length;
+  let status = '中性', dotClass = 'dot-gray';
+  if (lastRSI > ob) { status = '超买'; dotClass = 'dot-red'; }
+  else if (lastRSI < os) { status = '超卖'; dotClass = 'dot-green'; }
+
+  document.getElementById('rsi_info').innerHTML =
+    `RSI(${period}) · 末值 <b>${lastRSI.toFixed(2)}</b> · <b>${status}</b> · 超买${obCount}天/超卖${osCount}天`;
+  updateStatus('rsi', `RSI ${lastRSI.toFixed(1)} ${status}`, dotClass);
+}
+
+function updateMACD(data) {
+  const fast = parseInt(document.getElementById('macd_fast').value);
+  const slow = parseInt(document.getElementById('macd_slow').value);
+  const signal = parseInt(document.getElementById('macd_signal').value);
+  const close = data.map(d => d.close);
+  const { dif, dea, hist } = Indicators.macd(close, fast, slow, signal);
+  const labels = data.map(d => d.dateLabel);
+
+  charts.macd.data.labels = labels;
+  charts.macd.data.datasets[0].data = dif;
+  charts.macd.data.datasets[1].data = dea;
+  charts.macd.data.datasets[2].data = hist;
+  // MACD柱: 红(正)绿(负) — 中国惯例 涨红跌绿
+  charts.macd.data.datasets[2].backgroundColor = hist.map(v =>
+    v >= 0 ? 'rgba(248,81,73,0.6)' : 'rgba(63,185,80,0.6)'
+  );
+  charts.macd.update('none');
+
+  const lastDIF = dif[dif.length - 1];
+  const lastDEA = dea[dea.length - 1];
+  const lastHist = hist[hist.length - 1];
+  let cross = '金叉', dotClass = 'dot-red';
+  if (lastDIF < lastDEA) { cross = '死叉'; dotClass = 'dot-green'; }
+
+  document.getElementById('macd_info').innerHTML =
+    `MACD(${fast},${slow},${signal}) · DIF <b>${lastDIF.toFixed(4)}</b> · DEA <b>${lastDEA.toFixed(4)}</b> · <b>${cross}</b>`;
+  updateStatus('macd', `MACD ${cross}`, dotClass);
+}
+
+function updateBOLL(data) {
+  const period = parseInt(document.getElementById('boll_period').value);
+  const numStd = parseInt(document.getElementById('boll_std').value) / 10;
+  const close = data.map(d => d.close);
+  const { upper, mid, lower } = Indicators.boll(close, period, numStd);
+  const labels = data.map(d => d.dateLabel);
+
+  charts.boll.data.labels = labels;
+  charts.boll.data.datasets[0].data = upper;
+  charts.boll.data.datasets[1].data = mid;
+  charts.boll.data.datasets[2].data = lower;
+  charts.boll.data.datasets[3].data = close;
+  charts.boll.update('none');
+
+  const lastClose = close[close.length - 1];
+  const lastUpper = upper[upper.length - 1];
+  const lastMid = mid[mid.length - 1];
+  const lastLower = lower[lower.length - 1];
+  let pos = '中轨下方', dotClass = 'dot-gray';
+  if (lastClose > lastUpper) { pos = '突破上轨'; dotClass = 'dot-red'; }
+  else if (lastClose < lastLower) { pos = '跌破下轨'; dotClass = 'dot-green'; }
+  else if (lastClose > lastMid) { pos = '中轨上方'; dotClass = 'dot-amber'; }
+
+  document.getElementById('boll_info').innerHTML =
+    `BOLL(${period},${numStd.toFixed(1)}) · 收盘 <b>${lastClose.toFixed(2)}</b> · 上轨${lastUpper.toFixed(1)} / 中轨${lastMid.toFixed(1)} / 下轨${lastLower.toFixed(1)} · <b>${pos}</b>`;
+  updateStatus('boll', `BOLL ${pos}`, dotClass);
+}
+
+function updateKDJ(data) {
+  const n = parseInt(document.getElementById('kdj_n').value);
+  const m1 = parseInt(document.getElementById('kdj_m1').value);
+  const m2 = parseInt(document.getElementById('kdj_m2').value);
+  const high = data.map(d => d.high);
+  const low = data.map(d => d.low);
+  const close = data.map(d => d.close);
+  const { k, d, j } = Indicators.kdj(high, low, close, n, m1, m2);
+  const labels = data.map(d => d.dateLabel);
+
+  charts.kdj.data.labels = labels;
+  charts.kdj.data.datasets[0].data = k;
+  charts.kdj.data.datasets[1].data = d;
+  charts.kdj.data.datasets[2].data = j;
+  charts.kdj.update('none');
+
+  const lastK = k[k.length - 1];
+  const lastD = d[d.length - 1];
+  const lastJ = j[j.length - 1];
+  let status = '中性', dotClass = 'dot-gray';
+  if (lastJ > 100) { status = '超买'; dotClass = 'dot-red'; }
+  else if (lastJ < 0) { status = '超卖'; dotClass = 'dot-green'; }
+
+  document.getElementById('kdj_info').innerHTML =
+    `KDJ(${n},${m1},${m2}) · K <b>${lastK.toFixed(2)}</b> · D <b>${lastD.toFixed(2)}</b> · J <b>${lastJ.toFixed(2)}</b> · <b>${status}</b>`;
+  updateStatus('kdj', `KDJ J=${lastJ.toFixed(0)} ${status}`, dotClass);
+}
+
+// ==================== 状态栏 ====================
+const statusMap = {};
+function updateStatus(key, text, dotClass) {
+  statusMap[key] = { text, dotClass };
+  renderStatus();
+}
+function renderStatus() {
+  const labels = { rsi: 'RSI', macd: 'MACD', boll: 'BOLL', kdj: 'KDJ' };
+  const html = ['rsi','macd','boll','kdj'].map(k => {
+    const s = statusMap[k] || { text: '...', dotClass: 'dot-gray' };
+    return `<div class="status-item"><div class="status-dot ${s.dotClass}"></div>${labels[k]} ${s.text}</div>`;
+  }).join('');
+  document.getElementById('statusBar').innerHTML = html;
+}
+
+// ==================== 参数交互 ====================
+function debounce(fn, key, ms = 120) {
+  clearTimeout(debounceTimers[key]);
+  debounceTimers[key] = setTimeout(fn, ms);
+}
+
+function recalcIndicator(ind) {
+  const data = getVisibleData();
+  if (data.length < 5) return;
+  if (ind === 'rsi') updateRSI(data);
+  else if (ind === 'macd') updateMACD(data);
+  else if (ind === 'boll') updateBOLL(data);
+  else if (ind === 'kdj') updateKDJ(data);
+  updateAdvice();
+}
+
+function recalcAll() {
+  const data = getVisibleData();
+  if (data.length < 5) return;
+  updatePriceChart(data);
+  updateRSI(data);
+  updateMACD(data);
+  updateBOLL(data);
+  updateKDJ(data);
+  updateStrategy(data);
+  updateAdvice();
+}
+
+// ==================== 双均线策略引擎 ====================
+const Strategy = {
+  // 计算SMA
+  sma(close, period) {
+    const n = close.length;
+    const ma = new Array(n).fill(NaN);
+    for (let i = 0; i < n; i++) {
+      if (i < period - 1) { ma[i] = NaN; continue; }
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += close[j];
+      ma[i] = sum / period;
+    }
+    // min_periods=1: 前几个用已有数据算
+    for (let i = 0; i < period - 1 && i < n; i++) {
+      let sum = 0;
+      for (let j = 0; j <= i; j++) sum += close[j];
+      ma[i] = sum / (i + 1);
+    }
+    return ma;
+  },
+
+  // 生成金叉死叉信号 + 持仓
+  signals(maShort, maLong) {
+    const n = maShort.length;
+    const signal = new Array(n).fill(0);
+    const position = new Array(n).fill(0);
+    let holding = 0;
+    for (let i = 1; i < n; i++) {
+      const prevDiff = maShort[i-1] - maLong[i-1];
+      const currDiff = maShort[i] - maLong[i];
+      if (prevDiff < 0 && currDiff > 0) { signal[i] = 1; holding = 1; }
+      else if (prevDiff > 0 && currDiff < 0) { signal[i] = -1; holding = 0; }
+      position[i] = holding;
+    }
+    return { signal, position };
+  },
+
+  // 回测 + 7项指标
+  backtest(data, shortP, longP) {
+    const close = data.map(d => d.close);
+    const n = close.length;
+    const maShort = this.sma(close, shortP);
+    const maLong = this.sma(close, longP);
+    const { signal, position } = this.signals(maShort, maLong);
+
+    // 日收益率
+    const stockReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) {
+      stockReturn[i] = (close[i] - close[i-1]) / close[i-1];
+    }
+
+    // 策略日收益率 = 前一日持仓 × 当日股票收益
+    const stratReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) {
+      stratReturn[i] = position[i-1] * stockReturn[i];
+    }
+
+    // 累计净值
+    const stratNAV = new Array(n).fill(1);
+    const benchNAV = new Array(n).fill(1);
+    for (let i = 1; i < n; i++) {
+      stratNAV[i] = stratNAV[i-1] * (1 + stratReturn[i]);
+      benchNAV[i] = benchNAV[i-1] * (1 + stockReturn[i]);
+    }
+
+    // 扣除交易成本 (佣金万分之三 + 印花税千分之一卖出方)
+    const commission = 0.0003, stampTax = 0.001;
+    let totalCost = 0;
+    const capital = 100000;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) totalCost += capital * commission;
+      else if (signal[i] === -1) totalCost += capital * (commission + stampTax);
+    }
+    const costFactor = 1 - totalCost / (capital * stratNAV[n-1]);
+    for (let i = 0; i < n; i++) stratNAV[i] *= costFactor;
+
+    // === 7项指标 ===
+    const finalNAV = stratNAV[n-1];
+    const benchFinal = benchNAV[n-1];
+    const cumulativeReturn = (finalNAV - 1) * 100;
+    const benchReturn = (benchFinal - 1) * 100;
+
+    // 最大回撤
+    let maxNAV = -Infinity, maxDD = 0, benchMaxNAV = -Infinity, benchMDD = 0;
+    const ddArr = new Array(n), benchDDArr = new Array(n);
+    for (let i = 0; i < n; i++) {
+      if (stratNAV[i] > maxNAV) maxNAV = stratNAV[i];
+      ddArr[i] = (stratNAV[i] - maxNAV) / maxNAV;
+      if (ddArr[i] < maxDD) maxDD = ddArr[i];
+      if (benchNAV[i] > benchMaxNAV) benchMaxNAV = benchNAV[i];
+      benchDDArr[i] = (benchNAV[i] - benchMaxNAV) / benchMaxNAV;
+      if (benchDDArr[i] < benchMDD) benchMDD = benchDDArr[i];
+    }
+    const mdd = maxDD * 100;
+    const benchMddPct = benchMDD * 100;
+
+    // 年化波动率
+    const tradingDays = 252;
+    const meanRet = stratReturn.reduce((a,b) => a+b, 0) / n;
+    const variance = stratReturn.reduce((a,b) => a + (b - meanRet)**2, 0) / n;
+    const dailyStd = Math.sqrt(variance);
+    const annVol = dailyStd * Math.sqrt(tradingDays) * 100;
+
+    // 基准波动率
+    const benchMean = stockReturn.reduce((a,b) => a+b, 0) / n;
+    const benchVar = stockReturn.reduce((a,b) => a + (b - benchMean)**2, 0) / n;
+    const benchVol = Math.sqrt(benchVar) * Math.sqrt(tradingDays) * 100;
+
+    // 夏普比率
+    const rf = 0.02 / tradingDays;
+    const excessMean = meanRet - rf;
+    const sharpe = dailyStd > 0 ? Math.sqrt(tradingDays) * excessMean / dailyStd : 0;
+
+    // 年化收益率
+    const annReturn = (Math.pow(finalNAV, tradingDays / n) - 1) * 100;
+
+    // 胜率 + 盈亏比 + 期望收益
+    let winCount = 0, lossCount = 0, totalTrips = 0;
+    let winProfits = [], lossAmounts = [];
+    let buyPrice = null;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) { buyPrice = close[i]; }
+      else if (signal[i] === -1 && buyPrice !== null) {
+        const ret = (close[i] - buyPrice) / buyPrice;
+        if (ret > 0) { winCount++; winProfits.push(ret); }
+        else { lossCount++; lossAmounts.push(Math.abs(ret)); }
+        totalTrips++;
+        buyPrice = null;
+      }
+    }
+    const winRate = totalTrips > 0 ? winCount / totalTrips * 100 : 0;
+    const avgWin = winProfits.length > 0 ? winProfits.reduce((a,b)=>a+b,0)/winProfits.length : 0;
+    const avgLoss = lossAmounts.length > 0 ? lossAmounts.reduce((a,b)=>a+b,0)/lossAmounts.length : 0;
+    const plr = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const expR = avgLoss > 0 ? (winCount * avgWin - lossCount * avgLoss) / (totalTrips * avgLoss) : 0;
+
+    // 买卖信号点
+    const buyPoints = [], sellPoints = [];
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) buyPoints.push({ idx: i, price: close[i] });
+      else if (signal[i] === -1) sellPoints.push({ idx: i, price: close[i] });
+    }
+
+    return {
+      close, maShort, maLong, signal, position,
+      stratNAV, benchNAV, ddArr, benchDDArr,
+      buyPoints, sellPoints,
+      metrics: { cumulativeReturn, benchReturn, annReturn, mdd, benchMddPct,
+                 annVol, benchVol, sharpe, winRate, plr, expR,
+                 nTrades: buyPoints.length + sellPoints.length,
+                 buyCount: buyPoints.length, sellCount: sellPoints.length, totalTrips }
+    };
+  }
+};
+
+// ==================== 海龟策略引擎 ====================
+const TurtleStrategy = {
+  // 计算唐奇安通道 (shift(1) 后 rolling, 不含当日)
+  donchian(high, low, entryP, exitP) {
+    const n = high.length;
+    const entryUpper = new Array(n).fill(NaN);
+    const entryLower = new Array(n).fill(NaN);
+    const exitLower = new Array(n).fill(NaN);
+    for (let i = 0; i < n; i++) {
+      // 入场通道: 前 entryP 日的 high/low (shift 1)
+      if (i >= 1) {
+        let hu = -Infinity, ll = Infinity;
+        const eStart = Math.max(0, i - entryP);
+        for (let j = eStart; j < i; j++) {
+          if (high[j] > hu) hu = high[j];
+          if (low[j] < ll) ll = low[j];
+        }
+        entryUpper[i] = hu;
+        entryLower[i] = ll;
+        // 出场通道: 前 exitP 日的 low
+        let el = Infinity;
+        const xStart = Math.max(0, i - exitP);
+        for (let j = xStart; j < i; j++) {
+          if (low[j] < el) el = low[j];
+        }
+        exitLower[i] = el;
+      }
+    }
+    return { entryUpper, entryLower, exitLower };
+  },
+
+  // 计算 ATR (Wilder 平滑法)
+  atr(high, low, close, period) {
+    const n = close.length;
+    const tr = new Array(n).fill(0);
+    const atrArr = new Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+      if (i === 0) {
+        tr[i] = high[i] - low[i];
+      } else {
+        tr[i] = Math.max(
+          high[i] - low[i],
+          Math.abs(high[i] - close[i-1]),
+          Math.abs(low[i] - close[i-1])
+        );
+      }
+    }
+    // Wilder EMA: alpha = 1/period
+    const alpha = 1.0 / period;
+    atrArr[0] = tr[0];
+    for (let i = 1; i < n; i++) {
+      atrArr[i] = alpha * tr[i] + (1 - alpha) * atrArr[i-1];
+    }
+    return atrArr;
+  },
+
+  // 生成信号: 突破上轨买入, 跌破出场下轨或ATR止损卖出
+  signals(close, entryUpper, exitLower, atrArr, stopMult) {
+    const n = close.length;
+    const signal = new Array(n).fill(0);
+    const position = new Array(n).fill(0);
+    const stopPrice = new Array(n).fill(NaN);
+    let holding = 0;
+    let stop = 0;
+
+    for (let i = 0; i < n; i++) {
+      const c = close[i];
+      const eu = entryUpper[i];
+      const xl = exitLower[i];
+      const atr = atrArr[i];
+
+      if (holding === 0) {
+        if (!isNaN(eu) && c > eu) {
+          signal[i] = 1;
+          holding = 1;
+          stop = c - stopMult * atr;
+          stopPrice[i] = stop;
+        }
+      } else {
+        // 跟踪止损: 仅上移
+        const newStop = c - stopMult * atr;
+        if (newStop > stop) stop = newStop;
+        stopPrice[i] = stop;
+        // 止损或出场
+        if (c < stop) {
+          signal[i] = -1;
+          holding = 0;
+          stop = 0;
+        } else if (!isNaN(xl) && c < xl) {
+          signal[i] = -1;
+          holding = 0;
+          stop = 0;
+        }
+      }
+      position[i] = holding;
+    }
+    return { signal, position, stopPrice };
+  },
+
+  // 回测 + 7项指标
+  backtest(data, entryP, exitP, atrP, stopMult) {
+    const close = data.map(d => d.close);
+    const high = data.map(d => d.high);
+    const low = data.map(d => d.low);
+    const n = close.length;
+
+    const { entryUpper, entryLower, exitLower } = this.donchian(high, low, entryP, exitP);
+    const atrArr = this.atr(high, low, close, atrP);
+    const { signal, position, stopPrice } = this.signals(close, entryUpper, exitLower, atrArr, stopMult);
+
+    // 日收益率
+    const stockReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) stockReturn[i] = (close[i] - close[i-1]) / close[i-1];
+
+    const stratReturn = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) stratReturn[i] = position[i-1] * stockReturn[i];
+
+    const stratNAV = new Array(n).fill(1);
+    const benchNAV = new Array(n).fill(1);
+    for (let i = 1; i < n; i++) {
+      stratNAV[i] = stratNAV[i-1] * (1 + stratReturn[i]);
+      benchNAV[i] = benchNAV[i-1] * (1 + stockReturn[i]);
+    }
+
+    // 交易成本
+    const commission = 0.0003, stampTax = 0.001;
+    let totalCost = 0;
+    const capital = 100000;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) totalCost += capital * commission;
+      else if (signal[i] === -1) totalCost += capital * (commission + stampTax);
+    }
+    const costFactor = 1 - totalCost / (capital * stratNAV[n-1]);
+    if (costFactor > 0) for (let i = 0; i < n; i++) stratNAV[i] *= costFactor;
+
+    // === 7项指标 ===
+    const finalNAV = stratNAV[n-1];
+    const benchFinal = benchNAV[n-1];
+    const cumulativeReturn = (finalNAV - 1) * 100;
+    const benchReturn = (benchFinal - 1) * 100;
+
+    let maxNAV = -Infinity, maxDD = 0, benchMaxNAV = -Infinity, benchMDD = 0;
+    const ddArr = new Array(n), benchDDArr = new Array(n);
+    for (let i = 0; i < n; i++) {
+      if (stratNAV[i] > maxNAV) maxNAV = stratNAV[i];
+      ddArr[i] = (stratNAV[i] - maxNAV) / maxNAV;
+      if (ddArr[i] < maxDD) maxDD = ddArr[i];
+      if (benchNAV[i] > benchMaxNAV) benchMaxNAV = benchNAV[i];
+      benchDDArr[i] = (benchNAV[i] - benchMaxNAV) / benchMaxNAV;
+      if (benchDDArr[i] < benchMDD) benchMDD = benchDDArr[i];
+    }
+    const mdd = maxDD * 100;
+    const benchMddPct = benchMDD * 100;
+
+    const tradingDays = 252;
+    const meanRet = stratReturn.reduce((a,b) => a+b, 0) / n;
+    const variance = stratReturn.reduce((a,b) => a + (b - meanRet)**2, 0) / n;
+    const dailyStd = Math.sqrt(variance);
+    const annVol = dailyStd * Math.sqrt(tradingDays) * 100;
+
+    const benchMean = stockReturn.reduce((a,b) => a+b, 0) / n;
+    const benchVar = stockReturn.reduce((a,b) => a + (b - benchMean)**2, 0) / n;
+    const benchVol = Math.sqrt(benchVar) * Math.sqrt(tradingDays) * 100;
+
+    const rf = 0.02 / tradingDays;
+    const excessMean = meanRet - rf;
+    const sharpe = dailyStd > 0 ? Math.sqrt(tradingDays) * excessMean / dailyStd : 0;
+
+    const annReturn = (Math.pow(finalNAV, tradingDays / n) - 1) * 100;
+
+    let winCount = 0, lossCount = 0, totalTrips = 0;
+    let winProfits = [], lossAmounts = [];
+    let buyPrice = null;
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) { buyPrice = close[i]; }
+      else if (signal[i] === -1 && buyPrice !== null) {
+        const ret = (close[i] - buyPrice) / buyPrice;
+        if (ret > 0) { winCount++; winProfits.push(ret); }
+        else { lossCount++; lossAmounts.push(Math.abs(ret)); }
+        totalTrips++;
+        buyPrice = null;
+      }
+    }
+    const winRate = totalTrips > 0 ? winCount / totalTrips * 100 : 0;
+    const avgWin = winProfits.length > 0 ? winProfits.reduce((a,b)=>a+b,0)/winProfits.length : 0;
+    const avgLoss = lossAmounts.length > 0 ? lossAmounts.reduce((a,b)=>a+b,0)/lossAmounts.length : 0;
+    const plr = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const expR = avgLoss > 0 ? (winCount * avgWin - lossCount * avgLoss) / (totalTrips * avgLoss) : 0;
+
+    const buyPoints = [], sellPoints = [];
+    for (let i = 0; i < n; i++) {
+      if (signal[i] === 1) buyPoints.push({ idx: i, price: close[i] });
+      else if (signal[i] === -1) sellPoints.push({ idx: i, price: close[i] });
+    }
+
+    return {
+      close, entryUpper, entryLower, exitLower, atrArr, stopPrice,
+      signal, position,
+      stratNAV, benchNAV, ddArr, benchDDArr,
+      buyPoints, sellPoints,
+      metrics: { cumulativeReturn, benchReturn, annReturn, mdd, benchMddPct,
+                 annVol, benchVol, sharpe, winRate, plr, expR,
+                 nTrades: buyPoints.length + sellPoints.length,
+                 buyCount: buyPoints.length, sellCount: sellPoints.length, totalTrips }
+    };
+  }
+};
+
+// ==================== 融合策略引擎 (7模块AI评分 -10~+10) ====================
+const FusionStrategy = {
+  calcATR(high, low, close, period) {
+    const n = close.length;
+    const tr = new Array(n).fill(0);
+    const atr = new Array(n).fill(NaN);
+    for (let i = 1; i < n; i++) {
+      tr[i] = Math.max(high[i] - low[i], Math.abs(high[i] - close[i-1]), Math.abs(low[i] - close[i-1]));
+    }
+    for (let i = 0; i < n; i++) {
+      if (i < period) { atr[i] = NaN; continue; }
+      let sum = 0;
+      for (let j = i - period + 1; j <= i; j++) sum += tr[j];
+      atr[i] = sum / period;
+    }
+    return atr;
+  },
+
+  calcRSI(close, period) {
+    const n = close.length;
+    const rsi = new Array(n).fill(NaN);
+    let avgGain = 0, avgLoss = 0;
+    for (let i = 1; i <= period && i < n; i++) {
+      const d = close[i] - close[i-1];
+      if (d > 0) avgGain += d; else avgLoss += Math.abs(d);
+    }
+    if (n > period) { avgGain /= period; avgLoss /= period; }
+    for (let i = period; i < n; i++) {
+      const d = close[i] - close[i-1];
+      avgGain = (avgGain * (period-1) + (d > 0 ? d : 0)) / period;
+      avgLoss = (avgLoss * (period-1) + (d < 0 ? Math.abs(d) : 0)) / period;
+      rsi[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
+    }
+    return rsi;
+  },
+
+  calcMACD(close, fast, slow, signal) {
+    const n = close.length;
+    const ema = (arr, span) => {
+      const res = new Array(n).fill(NaN);
+      const k = 2 / (span + 1);
+      for (let i = 0; i < n; i++) {
+        if (i === 0) res[i] = arr[i];
+        else res[i] = arr[i] * k + res[i-1] * (1 - k);
+      }
+      return res;
+    };
+    const emaFast = ema(close, fast);
+    const emaSlow = ema(close, slow);
+    const dif = close.map((_, i) => emaFast[i] - emaSlow[i]);
+    const dea = ema(dif, signal);
+    return { dif, dea };
+  },
+
+  calcBOLL(close, period) {
+    const n = close.length;
+    const mid = new Array(n).fill(NaN);
+    const upper = new Array(n).fill(NaN);
+    const lower = new Array(n).fill(NaN);
+    for (let i = period - 1; i < n; i++) {
+      let sum = 0, sumSq = 0;
+      for (let j = i - period + 1; j <= i; j++) { sum += close[j]; sumSq += close[j] * close[j]; }
+      mid[i] = sum / period;
+      const std = Math.sqrt(sumSq / period - mid[i] * mid[i]);
+      upper[i] = mid[i] + 2 * std;
+      lower[i] = mid[i] - 2 * std;
+    }
+    return { mid, upper, lower };
+  },
+
+  backtest(data) {
+    const close = data.map(d => d.close);
+    const high = data.map(d => d.high);
+    const low = data.map(d => d.low);
+    const vol = data.map(d => d.vol);
+    const dates = data.map(d => d.dateLabel);
+    const n = close.length;
+
+    const rsi = this.calcRSI(close, 14);
+    const { dif, dea } = this.calcMACD(close, 12, 26, 9);
+    const { mid, upper, lower } = this.calcBOLL(close, 20);
+    const atr = this.calcATR(high, low, close, 20);
+    const maS = Strategy.sma(close, 5);
+    const maL = Strategy.sma(close, 15);
+    const upperCh = new Array(n).fill(NaN);
+    for (let i = 20; i < n; i++) {
+      let mx = -Infinity;
+      for (let j = i - 20; j < i; j++) mx = Math.max(mx, high[j]);
+      upperCh[i] = mx;
+    }
+
+    // 7模块评分
+    const scores = new Array(n).fill(0);
+    const actions = new Array(n).fill('');
+    const targets = new Array(n).fill(0);
+    let holding = 0, stopPrice = 0;
+
+    for (let i = 0; i < n; i++) {
+      if (i < 130) { scores[i] = NaN; targets[i] = 0; continue; }
+      let s = 0;
+      // RSI (1.0)
+      if (!isNaN(rsi[i])) s += (rsi[i] < 30 ? 1.0 : rsi[i] > 70 ? -1.0 : 0) * 1.0;
+      // MACD (1.5)
+      if (!isNaN(dif[i]) && !isNaN(dea[i])) s += (dif[i] > dea[i] ? 1.5 : -1.0);
+      // BOLL (1.0)
+      if (!isNaN(lower[i])) s += (close[i] < lower[i] ? 1.0 : close[i] > upper[i] ? -1.0 : 0);
+      // KDJ: 简化J值
+      const jVal = this.calcJ(close, i);
+      if (!isNaN(jVal)) s += (jVal < 20 ? 1.0 : jVal > 80 ? -1.0 : 0);
+      // MA (1.5)
+      if (!isNaN(maS[i]) && !isNaN(maL[i])) s += (maS[i] > maL[i] ? 1.5 : -0.5);
+      // 海龟通道 (1.5)
+      if (!isNaN(upperCh[i])) s += (close[i] > upperCh[i] ? 1.5 : 0);
+      // 波动率调整 (1.0)
+      if (!isNaN(atr[i])) s += (atr[i] / close[i] < 0.03 ? 0.5 : -0.5);
+
+      scores[i] = Math.max(-10, Math.min(10, s));
+      holding = targets[i-1] > 0 ? 1 : 0;
+
+      let target = 0;
+      if (scores[i] >= 4) { target = 0.7; actions[i] = '买入持有'; }
+      else if (scores[i] >= 1.5) { target = 0.45; actions[i] = '偏多'; }
+      else if (scores[i] > -1.5) { target = 0.1; actions[i] = '观望'; }
+      else if (scores[i] > -4) { target = 0.05; actions[i] = '偏空'; }
+      else { target = 0; actions[i] = '卖出'; }
+
+      // ATR止损
+      if (target > 0 && !isNaN(atr[i])) {
+        const newStop = close[i] - 2 * atr[i];
+        if (newStop > stopPrice || stopPrice === 0) stopPrice = newStop;
+      } else stopPrice = 0;
+      if (stopPrice > 0 && close[i] < stopPrice) { target = 0; actions[i] = '止损'; stopPrice = 0; }
+      targets[i] = target;
+    }
+
+    // 回测净值
+    const nav = [1.0];
+    for (let i = 1; i < n; i++) {
+      const ret = (close[i] - close[i-1]) / close[i-1];
+      nav.push(nav[nav.length-1] * (1 + ret * (targets[i-1] || 0)));
+    }
+    const navS = nav.slice(0, n);
+    const bhNav = [1.0];
+    for (let i = 1; i < n; i++) bhNav.push(bhNav[bhNav.length-1] * (1 + (close[i]-close[i-1])/close[i-1]));
+
+    // 指标
+    const stratRet = new Array(n).fill(0);
+    for (let i = 1; i < n; i++) stratRet[i] = (navS[i] - navS[i-1]) / navS[i-1];
+    const totRet = (navS[n-1] - 1) * 100;
+    const bhRet = (bhNav[n-1] - 1) * 100;
+    let maxN = -Infinity, mdd = 0;
+    const dd = new Array(n);
+    for (let i = 0; i < n; i++) { maxN = Math.max(maxN, navS[i]); dd[i] = (navS[i]-maxN)/maxN; mdd = Math.min(mdd, dd[i]); }
+    const meanR = stratRet.slice(1).reduce((a,b)=>a+b,0)/(n-1);
+    const vv = stratRet.slice(1).reduce((a,b)=>a+(b-meanR)**2,0)/n;
+    const sr = Math.sqrt(vv) > 0 ? Math.sqrt(252) * meanR / Math.sqrt(vv) : 0;
+    const var95 = stratRet.slice(1).sort((a,b)=>a-b)[Math.floor(n*0.05)];
+    const tail = stratRet.slice(1).filter(r => r <= var95);
+    const cvar95 = tail.length > 0 ? tail.reduce((a,b)=>a+b,0)/tail.length : 0;
+
+    return { close, nav: navS, bhNav, scores, actions, targets, dd, metrics: {
+      totalRet: totRet, bhRet, mdd: mdd*100, sharpe: sr, annVol: Math.sqrt(vv)*Math.sqrt(252)*100,
+      var95: var95*100, cvar95: cvar95*100, buyCount: actions.filter(a=>a==='买入持有'||a==='偏多').length,
+      sellCount: actions.filter(a=>a==='卖出').length, stopCount: actions.filter(a=>a==='止损').length
+    }};
+  },
+
+  calcJ(close, i) {
+    if (i < 8) return NaN;
+    const high9 = Math.max(...close.slice(i-8, i+1));
+    const low9 = Math.min(...close.slice(i-8, i+1));
+    const rsv = (close[i] - low9) / ((high9 - low9) || 1) * 100;
+    return rsv;
+  }
+};
+
+// ==================== 策略切换 ====================
+let currentStrategy = 'ma';
+
+function switchStrategy() {
+  currentStrategy = document.getElementById('stratType').value;
+  const maParams = document.getElementById('maParams');
+  const turtleParams = document.getElementById('turtleParams');
+  const tag = document.getElementById('stratTag');
+
+  maParams.classList.remove('active');
+  turtleParams.classList.remove('active');
+
+  if (currentStrategy === 'ma') {
+    maParams.classList.add('active');
+    tag.textContent = 'MA交叉 · 金叉买入 / 死叉卖出';
+    rebuildSignalChart('ma');
+  } else if (currentStrategy === 'turtle') {
+    turtleParams.classList.add('active');
+    tag.textContent = '唐奇安通道突破 · ATR动态止损';
+    rebuildSignalChart('turtle');
+  } else {
+    tag.textContent = '7模块加权评分 · 动态仓位映射';
+    rebuildSignalChart('fusion');
+  }
+  updateStrategy(getVisibleData());
+}
+
+function rebuildSignalChart(type) {
+  const chart = charts.stratSignal;
+  if (type === 'ma') {
+    chart.data.datasets = [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA短', data: [], borderColor: '#FF9800', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA长', data: [], borderColor: '#9C27B0', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '买入', data: [], borderColor: '#f85149', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+      { label: '卖出', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 5, pointStyle: 'crossRot', showLine: false }
+    ];
+  } else if (type === 'turtle') {
+    chart.data.datasets = [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '上轨', data: [], borderColor: '#f85149', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '下轨', data: [], borderColor: '#3fb950', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'ATR止损', data: [], borderColor: '#d29922', borderWidth: 0.6, borderDash: [3,2], pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '买入', data: [], borderColor: '#f85149', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+      { label: '卖出', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 5, pointStyle: 'crossRot', showLine: false }
+    ];
+  } else {
+    chart.data.datasets = [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '综合评分(柱)', data: [], borderColor: '#f0883e', borderWidth: 0, fill: true, type: 'bar', backgroundColor: 'rgba(240,136,62,0.3)' },
+      { label: '买入线(+4)', data: [], borderColor: '#f85149', borderWidth: 0.8, borderDash: [3,2], pointRadius: 0, fill: false },
+      { label: '卖出线(-4)', data: [], borderColor: '#3fb950', borderWidth: 0.8, borderDash: [3,2], pointRadius: 0, fill: false }
+    ];
+  }
+  chart.update('none');
+}
+
+// ==================== 策略图表初始化 ====================
+function initStrategyCharts() {
+  // 信号图
+  charts.stratSignal = new Chart(document.getElementById('stratSignalChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA短', data: [], borderColor: '#FF9800', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: 'MA长', data: [], borderColor: '#9C27B0', borderWidth: 0.8, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '买入', data: [], borderColor: '#f85149', borderWidth: 0, pointRadius: 5, pointStyle: 'triangle', showLine: false },
+      { label: '卖出', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 5, pointStyle: 'crossRot', showLine: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+
+  // 净值图 (含回撤叠加)
+  charts.stratNav = new Chart(document.getElementById('stratNavChart'), {
+    type: 'line',
+    data: { labels: [], datasets: [
+      { label: '策略净值', data: [], borderColor: '#f85149', borderWidth: 1.2, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '基准净值', data: [], borderColor: '#78909C', borderWidth: 1, borderDash: [4,2], pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '回撤%', data: [], borderColor: '#3fb950', borderWidth: 0, pointRadius: 0, fill: 'start', backgroundColor: 'rgba(63,185,80,0.2)', tension: 0, hidden: true }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false }, tooltip: { intersect: false, mode: 'index' } },
+      scales: { x: { grid: gridStyle, ticks: { maxTicksLimit: 6, font: { size: 9 } } },
+                y: { grid: gridStyle, ticks: { font: { size: 9 } } } }
+    }
+  });
+}
+
+// ==================== 策略更新 ====================
+function updateStrategy(data) {
+  const labels = data.map(d => d.dateLabel);
+  let result, m, signalLabel;
+
+  if (currentStrategy === 'ma') {
+    const shortP = parseInt(document.getElementById('strat_short').value);
+    const longP = parseInt(document.getElementById('strat_long').value);
+    result = Strategy.backtest(data, shortP, longP);
+    m = result.metrics;
+
+    // 信号图: 收盘价 + MA短 + MA长 + 买卖点
+    charts.stratSignal.data.labels = labels;
+    charts.stratSignal.data.datasets[0].data = result.close;
+    charts.stratSignal.data.datasets[1].data = result.maShort;
+    charts.stratSignal.data.datasets[2].data = result.maLong;
+    const buyArr = new Array(data.length).fill(null);
+    const sellArr = new Array(data.length).fill(null);
+    result.buyPoints.forEach(p => buyArr[p.idx] = p.price);
+    result.sellPoints.forEach(p => sellArr[p.idx] = p.price);
+    charts.stratSignal.data.datasets[3].data = buyArr;
+    charts.stratSignal.data.datasets[4].data = sellArr;
+    charts.stratSignal.update('none');
+
+    signalLabel = `MA${shortP}/${longP} 信号 · <b style="color:#f85149">▲买入${m.buyCount}</b> · <b style="color:#3fb950">✕卖出${m.sellCount}</b> · 累计回报 <b>${m.cumulativeReturn >= 0 ? '+' : ''}${m.cumulativeReturn.toFixed(2)}%</b>`;
+  } else if (currentStrategy === 'turtle') {
+    const entryP = parseInt(document.getElementById('turtle_entry').value);
+    const exitP = parseInt(document.getElementById('turtle_exit').value);
+    const atrP = parseInt(document.getElementById('turtle_atr').value);
+    const stopMult = parseInt(document.getElementById('turtle_stop').value) / 10;
+    result = TurtleStrategy.backtest(data, entryP, exitP, atrP, stopMult);
+    m = result.metrics;
+
+    // 信号图: 收盘价 + 上轨 + 下轨 + ATR止损 + 买卖点
+    charts.stratSignal.data.labels = labels;
+    charts.stratSignal.data.datasets[0].data = result.close;
+    charts.stratSignal.data.datasets[1].data = result.entryUpper;
+    charts.stratSignal.data.datasets[2].data = result.entryLower;
+    // ATR止损线 (仅持仓段)
+    const stopArr = result.stopPrice.map(v => isNaN(v) ? null : v);
+    charts.stratSignal.data.datasets[3].data = stopArr;
+    const buyArr = new Array(data.length).fill(null);
+    const sellArr = new Array(data.length).fill(null);
+    result.buyPoints.forEach(p => buyArr[p.idx] = p.price);
+    result.sellPoints.forEach(p => sellArr[p.idx] = p.price);
+    charts.stratSignal.data.datasets[4].data = buyArr;
+    charts.stratSignal.data.datasets[5].data = sellArr;
+    charts.stratSignal.update('none');
+
+    signalLabel = `DC${entryP}/${exitP} ATR${atrP} S${stopMult.toFixed(1)} · <b style="color:#f85149">▲买入${m.buyCount}</b> · <b style="color:#3fb950">✕卖出${m.sellCount}</b> · 累计回报 <b>${m.cumulativeReturn >= 0 ? '+' : ''}${m.cumulativeReturn.toFixed(2)}%</b>`;
+  } else {
+    // 融合策略
+    result = FusionStrategy.backtest(data);
+    m = result.metrics;
+
+    // 信号图: 收盘价 + 评分柱 + 阈值线
+    charts.stratSignal.data.labels = labels;
+    charts.stratSignal.data.datasets[0].data = result.close;
+    charts.stratSignal.data.datasets[1].data = result.scores;
+    const buyLine = new Array(data.length).fill(4);
+    const sellLine = new Array(data.length).fill(-4);
+    charts.stratSignal.data.datasets[2].data = buyLine;
+    charts.stratSignal.data.datasets[3].data = sellLine;
+    charts.stratSignal.update('none');
+
+    signalLabel = `7模块融合 · <b style="color:#f85149">买入/偏多${m.buyCount}d</b> · <b style="color:#3fb950">卖出${m.sellCount}d</b> · <b style="color:#d29922">止损${m.stopCount}d</b> · 超额 <b style="color:#f85149">+${(m.totalRet - m.bhRet).toFixed(2)}%</b>`;
+  }
+
+  document.getElementById('stratSignalLabel').innerHTML = signalLabel;
+
+  // 净值图 (融合策略使用 nav/bhNav 命名)
+  const navData = result.nav || result.stratNAV;
+  const benchData = result.bhNav || result.benchNAV;
+  // 从净值序列计算回撤
+  let ddArr = null;
+  if (currentStrategy !== 'fusion') {
+    ddArr = new Array(data.length);
+    let peak = -Infinity;
+    for (let i = 0; i < data.length; i++) {
+      if (navData[i] > peak) peak = navData[i];
+      ddArr[i] = (navData[i] - peak) / peak;
+    }
+  }
+  const ddData = result.dd || ddArr;
+  charts.stratNav.data.labels = labels;
+  charts.stratNav.data.datasets[0].data = navData;
+  charts.stratNav.data.datasets[1].data = benchData;
+  // 回撤叠加 (dataset index 2, semi-transparent fill)
+  if (ddData) {
+    charts.stratNav.data.datasets[2].data = ddData.map(v => v * 100);
+    charts.stratNav.data.datasets[2].hidden = false;
+  } else {
+    charts.stratNav.data.datasets[2].hidden = true;
+  }
+  charts.stratNav.update('none');
+
+  document.getElementById('stratNavLabel').innerHTML =
+    `策略净值 <b style="color:#f85149">${navData[data.length-1].toFixed(3)}</b> vs 基准 <b style="color:#78909C">${benchData[data.length-1].toFixed(3)}</b>`;
+
+  // 指标面板 (融合策略部分指标不可用)
+  const setMetric = (id, val, fmt, posGood) => {
+    const el = document.getElementById(id);
+    el.textContent = fmt(val);
+    el.className = 'metric-val ' + (val > 0 ? (posGood ? 'pos' : 'neg') : val < 0 ? (posGood ? 'neg' : 'pos') : 'neutral');
+  };
+  const totalR = m.totalRet != null ? m.totalRet : m.cumulativeReturn;
+
+  if (currentStrategy === 'fusion') {
+    // 融合策略: 简化指标 (超额/回撤/夏普/波动/VaR/CVaR)
+    setMetric('m_annReturn', m.totalRet, v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%', true);
+    setMetric('m_mdd', -Math.abs(m.mdd), v => v.toFixed(1) + '%', true);
+    setMetric('m_vol', m.annVol, v => v.toFixed(1) + '%', true);
+    setMetric('m_sharpe', m.sharpe, v => v.toFixed(2), true);
+    setMetric('m_winRate', m.bhRet, v => '基准' + v.toFixed(1) + '%', true);
+    setMetric('m_plr', m.var95, v => v.toFixed(2) + '%', true);
+    setMetric('m_expR', m.cvar95, v => v.toFixed(2) + '%', true);
+    // 重命名指标行
+    document.querySelectorAll('#stratMetrics .metric-name')[4].textContent = '基准收益';
+    document.querySelectorAll('#stratMetrics .metric-name')[5].textContent = 'VaR(95%)';
+    document.querySelectorAll('#stratMetrics .metric-name')[6].textContent = 'CVaR(95%)';
+  } else {
+    // MA/Turtle: 原始7项指标
+    document.querySelectorAll('#stratMetrics .metric-name')[4].textContent = '胜率';
+    document.querySelectorAll('#stratMetrics .metric-name')[5].textContent = '盈亏比';
+    document.querySelectorAll('#stratMetrics .metric-name')[6].textContent = '期望收益(R)';
+    setMetric('m_annReturn', m.annReturn, v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%', true);
+    const mddEl = document.getElementById('m_mdd');
+    mddEl.textContent = m.mdd.toFixed(1) + '%';
+    mddEl.className = 'metric-val ' + (m.mdd >= -10 ? 'pos' : m.mdd >= -20 ? 'neutral' : 'neg');
+    const volEl = document.getElementById('m_vol');
+    volEl.textContent = m.annVol.toFixed(1) + '%';
+    volEl.className = 'metric-val ' + (m.annVol <= 15 ? 'pos' : m.annVol <= 25 ? 'neutral' : 'neg');
+    setMetric('m_sharpe', m.sharpe, v => v.toFixed(2), true);
+    const wrEl = document.getElementById('m_winRate');
+    wrEl.textContent = m.winRate.toFixed(0) + '%';
+    wrEl.className = 'metric-val ' + (m.winRate >= 50 ? 'pos' : m.winRate >= 30 ? 'neutral' : 'neg');
+    const plrEl = document.getElementById('m_plr');
+    plrEl.textContent = m.plr.toFixed(2);
+    plrEl.className = 'metric-val ' + (m.plr >= 2 ? 'pos' : m.plr >= 1 ? 'neutral' : 'neg');
+    setMetric('m_expR', m.expR, v => (v >= 0 ? '+' : '') + v.toFixed(3) + 'R', true);
+  }
+  updateAdvice();
+}
+
+function resetStrategy() {
+  if (currentStrategy === 'ma') {
+    document.getElementById('strat_short').value = 5;
+    document.getElementById('strat_long').value = 15;
+    document.getElementById('strat_short_v').textContent = '5';
+    document.getElementById('strat_long_v').textContent = '15';
+  } else {
+    document.getElementById('turtle_entry').value = 20;
+    document.getElementById('turtle_exit').value = 10;
+    document.getElementById('turtle_atr').value = 20;
+    document.getElementById('turtle_stop').value = 20;
+    document.getElementById('turtle_entry_v').textContent = '20';
+    document.getElementById('turtle_exit_v').textContent = '10';
+    document.getElementById('turtle_atr_v').textContent = '20';
+    document.getElementById('turtle_stop_v').textContent = '2.0';
+  }
+  updateStrategy(getVisibleData());
+}
+
+// 滑块值显示
+function bindSlider(id, valId, isStd) {
+  const el = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  el.addEventListener('input', () => {
+    vl.textContent = isStd ? (parseInt(el.value) / 10).toFixed(1) : el.value;
+    const ind = id.split('_')[0];
+    debounce(() => recalcIndicator(ind), ind);
+  });
+}
+
+function setPreset(ind, type) {
+  const p = PRESETS[ind][type];
+  if (ind === 'rsi') {
+    document.getElementById('rsi_period').value = p.period;
+    document.getElementById('rsi_ob').value = p.ob;
+    document.getElementById('rsi_os').value = p.os;
+    document.getElementById('rsi_period_v').textContent = p.period;
+    document.getElementById('rsi_ob_v').textContent = p.ob;
+    document.getElementById('rsi_os_v').textContent = p.os;
+  } else if (ind === 'macd') {
+    document.getElementById('macd_fast').value = p.fast;
+    document.getElementById('macd_slow').value = p.slow;
+    document.getElementById('macd_signal').value = p.signal;
+    document.getElementById('macd_fast_v').textContent = p.fast;
+    document.getElementById('macd_slow_v').textContent = p.slow;
+    document.getElementById('macd_signal_v').textContent = p.signal;
+  } else if (ind === 'boll') {
+    document.getElementById('boll_period').value = p.period;
+    document.getElementById('boll_std').value = p.std;
+    document.getElementById('boll_period_v').textContent = p.period;
+    document.getElementById('boll_std_v').textContent = (p.std / 10).toFixed(1);
+  } else if (ind === 'kdj') {
+    document.getElementById('kdj_n').value = p.n;
+    document.getElementById('kdj_m1').value = p.m1;
+    document.getElementById('kdj_m2').value = p.m2;
+    document.getElementById('kdj_n_v').textContent = p.n;
+    document.getElementById('kdj_m1_v').textContent = p.m1;
+    document.getElementById('kdj_m2_v').textContent = p.m2;
+  }
+  // 高亮按钮
+  document.querySelectorAll(`.ind-row .preset-btns button`).forEach((btn, idx) => {
+    const row = btn.closest('.param-side').closest('.ind-row');
+    if (row.querySelector('.ind-name').textContent.toLowerCase().includes(ind.substring(0,3)) ||
+        (ind === 'boll' && row.querySelector('.ind-name').textContent === 'BOLL') ||
+        (row.querySelector(`#${ind}_period`) || row.querySelector(`#${ind}_fast`) || row.querySelector(`#${ind}_n`))) {
+      btn.classList.remove('active');
+    }
+  });
+  // 更精确: 找到对应行的按钮
+  const rows = document.querySelectorAll('.ind-row');
+  rows.forEach(row => {
+    const inputs = row.querySelectorAll('input[type=range]');
+    const firstId = inputs[0]?.id || '';
+    if (firstId.startsWith(ind + '_') || (ind === 'boll' && firstId === 'boll_period') || (ind === 'kdj' && firstId === 'kdj_n')) {
+      const btns = row.querySelectorAll('.preset-btns button');
+      const idx = type === 'conservative' ? 0 : type === 'standard' ? 1 : 2;
+      btns.forEach(b => b.classList.remove('active'));
+      btns[idx].classList.add('active');
+    }
+  });
+  recalcIndicator(ind);
+}
+
+function resetParams(ind) {
+  setPreset(ind, 'standard');
+}
+
+// CSV上传
+document.getElementById('csvFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    rawData = parseCSV(ev.target.result);
+    const code = file.name.replace(/_daily\.csv|.csv/gi, '').replace(/_/g, ' ');
+    document.getElementById('stockCode').value = code || '自定义';
+    recalcAll();
+  };
+  reader.readAsText(file, 'UTF-8');
+});
+
+// 日期范围切换
+document.getElementById('dateRange').addEventListener('change', recalcAll);
+
+// ==================== 机器学习引擎 ====================
+const ML = {
+
+  // ---- 特征工程: 从rawData构建17个特征 ----
+  buildFeatures(data) {
+    const n = data.length;
+    const close = data.map(d => d.close);
+    const vol = data.map(d => d.vol);
+    const open = data.map(d => d.open);
+    const high = data.map(d => d.high);
+    const low = data.map(d => d.low);
+
+    const F = []; // 特征矩阵
+
+    for (let i = 20; i < n - 1; i++) {
+      // 1. 收益率
+      const return_1d = (close[i] - close[i-1]) / close[i-1];
+      const return_5d = (close[i] - close[i-5]) / close[i-5];
+      const return_10d = (close[i] - close[i-10]) / close[i-10];
+
+      // 2. 均线偏离度
+      let ma5sum = 0; for (let j = i-4; j <= i; j++) ma5sum += close[j];
+      const ma5 = ma5sum / 5;
+      let ma10sum = 0; for (let j = i-9; j <= i; j++) ma10sum += close[j];
+      const ma10 = ma10sum / 10;
+      let ma20sum = 0; for (let j = i-19; j <= i; j++) ma20sum += close[j];
+      const ma20 = ma20sum / 20;
+      const ma5_dev = (close[i] - ma5) / ma5;
+      const ma10_dev = (close[i] - ma10) / ma10;
+      const ma20_dev = (close[i] - ma20) / ma20;
+
+      // 3. 波动率
+      const rets5 = []; for (let j = i-4; j <= i; j++) rets5.push((close[j]-close[j-1])/close[j-1]);
+      const vol5 = std(rets5);
+      const rets10 = []; for (let j = i-9; j <= i; j++) rets10.push((close[j]-close[j-1])/close[j-1]);
+      const vol10 = std(rets10);
+      const rets20 = []; for (let j = i-19; j <= i; j++) rets20.push((close[j]-close[j-1])/close[j-1]);
+      const vol20 = std(rets20);
+
+      // 4. 成交量变化
+      const vol_change_1d = vol[i-1] > 0 ? (vol[i] - vol[i-1]) / vol[i-1] : 0;
+      const vol_change_5d = vol[i-5] > 0 ? (vol[i] - vol[i-5]) / vol[i-5] : 0;
+      let volMa5 = 0; for (let j = i-4; j <= i; j++) volMa5 += vol[j];
+      volMa5 /= 5;
+      const vol_ma5_ratio = volMa5 > 0 ? vol[i] / volMa5 : 1;
+
+      // 5. 动量
+      const momentum_5d = close[i-5] > 0 ? close[i] / close[i-5] - 1 : 0;
+      const momentum_10d = close[i-10] > 0 ? close[i] / close[i-10] - 1 : 0;
+
+      // 6. 价格形态
+      const high_low_ratio = (high[i] - low[i]) / close[i];
+      const close_open_ratio = open[i] > 0 ? (close[i] - open[i]) / open[i] : 0;
+
+      // 7. RSI(14)
+      let gainSum = 0, lossSum = 0;
+      for (let j = i-13; j <= i; j++) {
+        const d = close[j] - close[j-1];
+        if (d > 0) gainSum += d; else lossSum += -d;
+      }
+      const avgGain = gainSum / 14;
+      const avgLoss = lossSum / 14;
+      const rs = avgLoss > 0 ? avgGain / avgLoss : 100;
+      const rsi_14 = 100 - 100 / (1 + rs);
+
+      // 目标: 次日涨跌
+      const target = close[i+1] > close[i] ? 1 : 0;
+
+      F.push({
+        features: [return_1d, return_5d, return_10d,
+                   ma5_dev, ma10_dev, ma20_dev,
+                   vol5, vol10, vol20,
+                   vol_change_1d, vol_change_5d, vol_ma5_ratio,
+                   momentum_5d, momentum_10d,
+                   high_low_ratio, close_open_ratio, rsi_14],
+        target: target
+      });
+    }
+
+    return F;
+  },
+
+  // ---- 标准化 (Z-Score) ----
+  standardize(F) {
+    const nFeat = F[0].features.length;
+    const means = new Array(nFeat).fill(0);
+    const stds = new Array(nFeat).fill(1);
+    for (let j = 0; j < nFeat; j++) {
+      let s = 0;
+      for (let i = 0; i < F.length; i++) s += F[i].features[j];
+      means[j] = s / F.length;
+      let ss = 0;
+      for (let i = 0; i < F.length; i++) ss += (F[i].features[j] - means[j]) ** 2;
+      stds[j] = Math.sqrt(ss / F.length) || 1;
+    }
+    // 应用标准化
+    for (let i = 0; i < F.length; i++) {
+      F[i].features = F[i].features.map((v, j) => (v - means[j]) / stds[j]);
+    }
+    return { means, stds };
+  },
+
+  // ---- 逻辑回归 (梯度下降) ----
+  logisticRegression(X, y, opts) {
+    const n = X.length;
+    const nFeat = X[0].length;
+    const lr = opts.lr || 0.01;
+    const epochs = opts.epochs || 500;
+    const lambda = opts.lambda || 0.001; // L2正则化
+
+    let weights = new Array(nFeat).fill(0);
+    let bias = 0;
+
+    for (let epoch = 0; epoch < epochs; epoch++) {
+      const gradW = new Array(nFeat).fill(0);
+      let gradB = 0;
+      for (let i = 0; i < n; i++) {
+        let z = bias;
+        for (let j = 0; j < nFeat; j++) z += weights[j] * X[i][j];
+        const pred = 1 / (1 + Math.exp(-z));
+        const err = pred - y[i];
+        for (let j = 0; j < nFeat; j++) gradW[j] += err * X[i][j];
+        gradB += err;
+      }
+      for (let j = 0; j < nFeat; j++) {
+        weights[j] -= lr * (gradW[j] / n + lambda * weights[j]);
+      }
+      bias -= lr * (gradB / n);
+    }
+
+    return {
+      predict_proba(xs) {
+        let z = bias;
+        for (let j = 0; j < nFeat; j++) z += weights[j] * xs[j];
+        return 1 / (1 + Math.exp(-z));
+      }
+    };
+  },
+
+  // ---- 决策树 (CART, Gini) ----
+  decisionTree(X, y, maxDepth, minSamples, depth) {
+    depth = depth || 0;
+    minSamples = minSamples || 2;
+    maxDepth = maxDepth || 5;
+
+    const n = y.length;
+    let posCount = 0;
+    for (let i = 0; i < n; i++) posCount += y[i];
+    const prob1 = posCount / n;
+
+    // 叶节点条件
+    if (depth >= maxDepth || n < minSamples || posCount === 0 || posCount === n) {
+      return { leaf: true, prob: prob1 };
+    }
+
+    // 寻找最佳分裂
+    let bestGini = Infinity, bestFeat = -1, bestThresh = 0;
+    const nFeat = X[0].length;
+
+    for (let f = 0; f < nFeat; f++) {
+      // 按特征值排序
+      const sorted = [];
+      for (let i = 0; i < n; i++) sorted.push({ x: X[i][f], y: y[i] });
+      sorted.sort((a, b) => a.x - b.x);
+
+      // 累计计数计算Gini
+      let leftPos = 0, rightPos = posCount;
+      for (let i = 1; i < n; i++) {
+        if (sorted[i-1].y === 1) { leftPos++; rightPos--; }
+        const leftN = i, rightN = n - i;
+        if (sorted[i].x === sorted[i-1].x) continue; // 跳过相同值
+
+        const leftGini = 1 - (leftPos/leftN)**2 - (1-leftPos/leftN)**2;
+        const rightGini = 1 - (rightPos/rightN)**2 - (1-rightPos/rightN)**2;
+        const gini = (leftN/n)*leftGini + (rightN/n)*rightGini;
+
+        if (gini < bestGini) {
+          bestGini = gini;
+          bestFeat = f;
+          bestThresh = (sorted[i].x + sorted[i-1].x) / 2;
+        }
+      }
+    }
+
+    if (bestFeat === -1) return { leaf: true, prob: prob1 };
+
+    // 分裂数据
+    const leftX = [], leftY = [], rightX = [], rightY = [];
+    for (let i = 0; i < n; i++) {
+      if (X[i][bestFeat] <= bestThresh) { leftX.push(X[i]); leftY.push(y[i]); }
+      else { rightX.push(X[i]); rightY.push(y[i]); }
+    }
+
+    if (leftX.length === 0 || rightX.length === 0) return { leaf: true, prob: prob1 };
+
+    return {
+      leaf: false,
+      feat: bestFeat, thresh: bestThresh,
+      left: ML.decisionTree(leftX, leftY, maxDepth, minSamples, depth+1),
+      right: ML.decisionTree(rightX, rightY, maxDepth, minSamples, depth+1)
+    };
+  },
+
+  // 决策树预测
+  treePredict(tree, xs) {
+    if (tree.leaf) return tree.prob;
+    if (xs[tree.feat] <= tree.thresh) return ML.treePredict(tree.left, xs);
+    return ML.treePredict(tree.right, xs);
+  },
+
+  // ---- 随机森林 ----
+  randomForest(X, y, nTrees, maxDepth) {
+    const n = X.length;
+    const nFeat = X[0].length;
+    const trees = [];
+    const featSamples = Math.min(nFeat, Math.round(Math.sqrt(nFeat) * 2));
+
+    for (let t = 0; t < nTrees; t++) {
+      // Bootstrap抽样
+      const sampleIdx = [];
+      for (let i = 0; i < n; i++) sampleIdx.push(Math.floor(Math.random() * n));
+      const sX = sampleIdx.map(i => X[i]);
+      const sY = sampleIdx.map(i => y[i]);
+
+      // 随机选择特征子集 (存储映射)
+      const allFeats = Array.from({length: nFeat}, (_, i) => i);
+      // Fisher-Yates shuffle
+      for (let i = allFeats.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [allFeats[i], allFeats[j]] = [allFeats[j], allFeats[i]];
+      }
+      const selFeats = allFeats.slice(0, featSamples).sort((a,b) => a-b);
+
+      // 投影到选定特征
+      const projX = sX.map(row => selFeats.map(f => row[f]));
+      const tree = ML.decisionTree(projX, sY, maxDepth, 2, 0);
+      trees.push({ tree, selFeats });
+    }
+
+    return {
+      predict_proba(xs) {
+        let sum = 0;
+        for (const t of trees) {
+          const proj = t.selFeats.map(f => xs[f]);
+          sum += ML.treePredict(t.tree, proj);
+        }
+        return sum / trees.length;
+      }
+    };
+  },
+
+  // ---- ROC + AUC ----
+  computeROC(yTrue, yScore) {
+    const n = yTrue.length;
+    const pairs = [];
+    for (let i = 0; i < n; i++) pairs.push({ score: yScore[i], label: yTrue[i] });
+    pairs.sort((a, b) => b.score - a.score);
+
+    let totalPos = 0, totalNeg = 0;
+    for (let i = 0; i < n; i++) { if (pairs[i].label === 1) totalPos++; else totalNeg++; }
+    if (totalPos === 0 || totalNeg === 0) return { fpr: [0,1], tpr: [0,1], auc: 0.5 };
+
+    const fpr = [0], tpr = [0];
+    let tp = 0, fp = 0;
+    for (let i = 0; i < n; i++) {
+      if (pairs[i].label === 1) tp++; else fp++;
+      const curFpr = fp / totalNeg;
+      const curTpr = tp / totalPos;
+      // 去重
+      if (i < n - 1 && pairs[i].score === pairs[i+1].score) continue;
+      fpr.push(curFpr);
+      tpr.push(curTpr);
+    }
+    fpr.push(1); tpr.push(1);
+
+    // AUC (梯形法)
+    let auc = 0;
+    for (let i = 1; i < fpr.length; i++) {
+      auc += (fpr[i] - fpr[i-1]) * (tpr[i] + tpr[i-1]) / 2;
+    }
+
+    return { fpr, tpr, auc };
+  },
+
+  // ---- 混淆矩阵 ----
+  confusionMatrix(yTrue, yPred) {
+    let tn=0, fp=0, fn=0, tp=0;
+    for (let i = 0; i < yTrue.length; i++) {
+      if (yTrue[i]===1 && yPred[i]===1) tp++;
+      else if (yTrue[i]===1 && yPred[i]===0) fn++;
+      else if (yTrue[i]===0 && yPred[i]===1) fp++;
+      else tn++;
+    }
+    const total = tn + fp + fn + tp || 1;
+    return {
+      tn, fp, fn, tp,
+      accuracy: (tp + tn) / total,
+      precision: tp + fp > 0 ? tp / (tp + fp) : 0,
+      recall: tp + fn > 0 ? tp / (tp + fn) : 0,
+      f1: 0, // 下方计算
+      total
+    };
+  }
+};
+
+// 辅助: 标准差
+function std(arr) {
+  if (arr.length === 0) return 0;
+  const mean = arr.reduce((a,b) => a+b, 0) / arr.length;
+  const variance = arr.reduce((a,b) => a + (b-mean)**2, 0) / arr.length;
+  return Math.sqrt(variance);
+}
+
+// ==================== ML全局状态 ====================
+let mlTrained = false;
+let mlModel = null;
+let mlScaler = null;
+let mlLastResult = null;
+
+// ==================== ML图表初始化 ====================
+function initMLChart() {
+  charts.mlRoc = new Chart(document.getElementById('mlRocChart'), {
+    type: 'line',
+    data: { datasets: [
+      { label: 'ROC', data: [], borderColor: '#58a6ff', borderWidth: 1.5, pointRadius: 0, fill: false, tension: 0.1 },
+      { label: '随机基线', data: [], borderColor: '#6e7681', borderWidth: 0.8, borderDash: [3,2], pointRadius: 0, fill: false }
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { intersect: false, callbacks: {
+          label: (ctx) => `FPR=${ctx.parsed.x.toFixed(2)} · TPR=${ctx.parsed.y.toFixed(2)}`
+        }}
+      },
+      scales: {
+        x: { type: 'linear', min: 0, max: 1, grid: gridStyle, title: { display: true, text: '假正率 (FPR)', font: {size: 9}, color: '#8b949e' }, ticks: { font: { size: 9 }, stepSize: 0.25 } },
+        y: { type: 'linear', min: 0, max: 1, grid: gridStyle, title: { display: true, text: '真正率 (TPR)', font: {size: 9}, color: '#8b949e' }, ticks: { font: { size: 9 }, stepSize: 0.25 } }
+      }
+    }
+  });
+  // 特征重要性图
+  charts.mlFi = new Chart(document.getElementById('mlFiChart'), {
+    type: 'bar',
+    data: { labels: [], datasets: [
+      { label: '重要性', data: [], backgroundColor: 'rgba(88,166,255,0.7)', borderColor: '#58a6ff', borderWidth: 0.5 }
+    ]},
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: gridStyle, ticks: { font: { size: 9 } } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ==================== ML训练 ====================
+function mlTrain() {
+  const data = getVisibleData();
+  if (data.length < 50) {
+    setMLStatus('数据不足，至少需要50条', 'error');
+    return;
+  }
+
+  setMLStatus('构建特征中...', 'training');
+  document.getElementById('mlTrainBtn').disabled = true;
+
+  setTimeout(() => {
+    // 1. 构建特征
+    const dataset = ML.buildFeatures(data);
+    if (dataset.length < 20) {
+      setMLStatus('有效样本不足', 'error');
+      document.getElementById('mlTrainBtn').disabled = false;
+      return;
+    }
+
+    document.getElementById('ml_n_samples').textContent = dataset.length;
+
+    // 2. 标准化
+    const scaler = ML.standardize(dataset);
+    mlScaler = scaler;
+
+    // 3. 划分训练/测试集
+    const testRatio = parseInt(document.getElementById('ml_test_size').value) / 100;
+    const splitIdx = Math.floor(dataset.length * (1 - testRatio));
+    const trainSet = dataset.slice(0, splitIdx);
+    const testSet = dataset.slice(splitIdx);
+
+    const X_train = trainSet.map(d => d.features);
+    const y_train = trainSet.map(d => d.target);
+    const X_test = testSet.map(d => d.features);
+    const y_test = testSet.map(d => d.target);
+
+    // 4. 训练选定模型
+    setMLStatus('训练模型中...', 'training');
+    const modelType = document.getElementById('mlModel').value;
+    const maxDepth = parseInt(document.getElementById('ml_depth').value);
+
+    setTimeout(() => {
+      let trainedModel;
+      if (modelType === 'logistic') {
+        trainedModel = ML.logisticRegression(X_train, y_train, { lr: 0.05, epochs: 800, lambda: 0.001 });
+      } else if (modelType === 'tree') {
+        const tree = ML.decisionTree(X_train, y_train, maxDepth, 2, 0);
+        trainedModel = { predict_proba: xs => ML.treePredict(tree, xs) };
+      } else {
+        const nTrees = parseInt(document.getElementById('ml_n_trees').value);
+        trainedModel = ML.randomForest(X_train, y_train, nTrees, maxDepth);
+      }
+
+      mlModel = trainedModel;
+
+      // 5. 测试集预测
+      const yScore = X_test.map(x => trainedModel.predict_proba(x));
+      const yPred = yScore.map(s => s >= 0.5 ? 1 : 0);
+
+      // 6. 评估
+      const cm = ML.confusionMatrix(y_test, yPred);
+      cm.f1 = cm.precision + cm.recall > 0 ? 2 * cm.precision * cm.recall / (cm.precision + cm.recall) : 0;
+      const roc = ML.computeROC(y_test, yScore);
+
+      mlLastResult = { cm, roc, modelType, nTrain: trainSet.length, nTest: testSet.length, lastFeatures: dataset[dataset.length-1].features };
+
+      // 计算特征重要性 (与目标的相关性绝对值)
+      const nFeat = X_train[0].length;
+      const fi = new Array(nFeat).fill(0);
+      const mlFeatureLabels = ['1日收益','5日收益','10日收益','MA5偏离','MA10偏离','MA20偏离',
+        '5日波动率','10日波动率','20日波动率','1日量变','5日量变','量比MA5',
+        '5日动量','10日动量','振幅比','开盘涨跌','RSI(14)'];
+      for (let f = 0; f < nFeat; f++) {
+        let meanX = 0, meanY = 0;
+        for (let i = 0; i < trainSet.length; i++) { meanX += X_train[i][f]; meanY += y_train[i]; }
+        meanX /= trainSet.length; meanY /= trainSet.length;
+        let cov = 0, varX = 0, varY = 0;
+        for (let i = 0; i < trainSet.length; i++) {
+          const dx = X_train[i][f] - meanX, dy = y_train[i] - meanY;
+          cov += dx * dy; varX += dx * dx; varY += dy * dy;
+        }
+        fi[f] = varX > 0 && varY > 0 ? Math.abs(cov / Math.sqrt(varX * varY)) : 0;
+      }
+      const fiMax = Math.max(...fi, 0.01);
+      const fiNorm = fi.map(v => v / fiMax);
+
+      mlLastResult.fi = { names: mlFeatureLabels, values: fiNorm };
+
+      // 7. 更新UI
+      updateMLCharts(cm, roc);
+      updateMLMetrics(cm, roc);
+      updateConfusionMatrix(cm);
+      updateMLFi(mlLastResult.fi);
+
+      mlTrained = true;
+      document.getElementById('mlPredictBtn').disabled = false;
+      setMLStatus(`训练完成 · ${getModelName(modelType)} · 训练${trainSet.length}/测试${testSet.length}`, 'done');
+      document.getElementById('mlTrainBtn').disabled = false;
+    }, 30);
+  }, 30);
+}
+
+function getModelName(type) {
+  return type === 'logistic' ? '逻辑回归' : type === 'tree' ? '决策树' : '随机森林';
+}
+
+// ==================== ML预测 ====================
+function mlPredict() {
+  if (!mlModel || !mlScaler) {
+    setMLStatus('请先训练模型', 'error');
+    return;
+  }
+
+  const data = getVisibleData();
+  if (data.length < 21) return;
+
+  // 用最新一天的数据构建特征
+  const dataset = ML.buildFeatures(data);
+  if (dataset.length === 0) return;
+
+  // 获取最后一个样本 (最新一天的17个特征)
+  const lastSample = dataset[dataset.length - 1].features.slice();
+  // 标准化
+  const scaled = lastSample.map((v, j) => (v - mlScaler.means[j]) / mlScaler.stds[j]);
+
+  const probUp = mlModel.predict_proba(scaled);
+  const probDown = 1 - probUp;
+
+  // 更新预测信号条
+  document.getElementById('mlSigUp').style.width = (probUp * 100) + '%';
+  document.getElementById('mlSigDown').style.width = (probDown * 100) + '%';
+  document.getElementById('mlSigUpPct').textContent = (probUp * 100).toFixed(1) + '%';
+  document.getElementById('mlSigDownPct').textContent = (probDown * 100).toFixed(1) + '%';
+
+  // 状态更新 —— 颜色永远跟随涨跌方向（涨红跌绿，中国惯例），置信度仍显示在文字中
+  const direction = probUp >= 0.5 ? '涨' : '跌';
+  const conf = Math.max(probUp, probDown);
+  lastMLProbUp = probUp;
+  lastMLConf = conf;
+  setMLStatus(`预测: 明日${direction} (置信度 ${(conf*100).toFixed(1)}%)`, direction === '涨' ? 'bull' : 'bear');
+  updateAdvice();
+}
+
+// ==================== ML图表更新 ====================
+function updateMLCharts(cm, roc) {
+  // ROC曲线 —— 必须用 {x, y} 散点模式 + linear x轴 才能正确绘制
+  // ROC计算输出: fpr = [0, ..., 1] 单调递增, tpr = [0, ..., 1] 累计真正率
+  charts.mlRoc.data.datasets[0].data = roc.fpr.map((f, i) => ({ x: f, y: roc.tpr[i] }));
+  charts.mlRoc.data.datasets[1].data = [{ x: 0, y: 0 }, { x: 1, y: 1 }];  // y=x 对角线
+  charts.mlRoc.update('none');
+
+  document.getElementById('mlRocLabel').innerHTML =
+    `ROC曲线 · AUC = <b style="color:${roc.auc >= 0.6 ? '#3fb950' : roc.auc >= 0.5 ? '#d29922' : '#f85149'}">${roc.auc.toFixed(4)}</b>`;
+}
+
+function updateConfusionMatrix(cm) {
+  const total = cm.total;
+  const cells = [
+    { id: 'cm_tn', val: cm.tn, pct: (cm.tn/total*100) },
+    { id: 'cm_fp', val: cm.fp, pct: (cm.fp/total*100) },
+    { id: 'cm_fn', val: cm.fn, pct: (cm.fn/total*100) },
+    { id: 'cm_tp', val: cm.tp, pct: (cm.tp/total*100) },
+  ];
+  cells.forEach(c => {
+    const el = document.getElementById(c.id);
+    el.querySelector('.cm-val').textContent = c.val;
+    el.querySelector('.cm-pct').textContent = c.pct.toFixed(1) + '%';
+    // 透明度随占比变化
+    const opacity = 0.08 + c.pct / 100 * 0.3;
+    const isCorrect = c.id === 'cm_tn' || c.id === 'cm_tp';
+    el.style.background = isCorrect
+      ? `rgba(63,185,80,${opacity})`
+      : `rgba(248,81,73,${opacity})`;
+  });
+
+  document.getElementById('mlCmLabel').innerHTML =
+    `混淆矩阵 · TP=<b style="color:#3fb950">${cm.tp}</b> TN=<b style="color:#3fb950">${cm.tn}</b> FP=<b style="color:#f85149">${cm.fp}</b> FN=<b style="color:#f85149">${cm.fn}</b>`;
+}
+
+function updateMLMetrics(cm, roc) {
+  const setVal = (id, val, good) => {
+    const el = document.getElementById(id);
+    el.textContent = (val * 100).toFixed(1) + '%';
+    el.className = 'metric-val ' + (val >= good ? 'pos' : val >= good * 0.7 ? 'neutral' : 'neg');
+  };
+  // AUC特殊处理
+  const aucEl = document.getElementById('mlm_auc');
+  aucEl.textContent = roc.auc.toFixed(4);
+  aucEl.className = 'metric-val ' + (roc.auc >= 0.65 ? 'pos' : roc.auc >= 0.55 ? 'neutral' : 'neg');
+
+  setVal('mlm_acc', cm.accuracy, 0.55);
+  setVal('mlm_prec', cm.precision, 0.55);
+  setVal('mlm_rec', cm.recall, 0.55);
+  setVal('mlm_f1', cm.f1, 0.55);
+}
+
+function updateMLFi(fi) {
+  if (!fi || !fi.names || !fi.values) {
+    document.getElementById('mlFiBox').style.display = 'none';
+    return;
+  }
+  document.getElementById('mlFiBox').style.display = 'block';
+  const sorted = fi.names.map((n, i) => ({ name: n, value: fi.values[i] })).sort((a, b) => b.value - a.value);
+  const topNames = sorted.map(v => v.name);
+  const topVals = sorted.map(v => v.value);
+  charts.mlFi.data.labels = topNames;
+  charts.mlFi.data.datasets[0].data = topVals;
+  charts.mlFi.update('none');
+  document.getElementById('mlFiLabel').textContent =
+    `特征重要性(与目标相关性) · Top: ${topNames[0]}`;
+}
+
+function setMLStatus(msg, type) {
+  const el = document.getElementById('mlStatus');
+  el.textContent = msg;
+  el.className = 'ml-status ' + (type || 'ready');
+}
+
+// ==================== ML选股策略引擎 (TASK6) ====================
+const MLS = {
+
+  // ---- 12因子构建 (与TASK6 ml_strategy.py对齐) ----
+  buildFactors(data) {
+    const n = data.length;
+    const close = data.map(d => d.close);
+    const vol = data.map(d => d.vol);
+    const high = data.map(d => d.high);
+    const low = data.map(d => d.low);
+    const amount = data.map(d => d.amount || d.vol * d.close);
+
+    const F = [];
+    for (let i = 20; i < n; i++) {
+      // 1. return_5d
+      const r5 = close[i-5] > 0 ? (close[i] - close[i-5]) / close[i-5] : 0;
+      // 2. return_20d
+      const r20 = close[i-20] > 0 ? (close[i] - close[i-20]) / close[i-20] : 0;
+      // 3. ma5_dev
+      let ma5s = 0; for (let j = i-4; j <= i; j++) ma5s += close[j]; const ma5 = ma5s / 5;
+      const ma5d = ma5 > 0 ? (close[i] - ma5) / ma5 : 0;
+      // 4. ma20_dev
+      let ma20s = 0; for (let j = i-19; j <= i; j++) ma20s += close[j]; const ma20 = ma20s / 20;
+      const ma20d = ma20 > 0 ? (close[i] - ma20) / ma20 : 0;
+      // 5. price_ma_ratio
+      const pmr = ma20 > 0 ? close[i] / ma20 : 1;
+      // 6. volatility_20d
+      const rets20 = []; for (let j = i-19; j <= i; j++) rets20.push((close[j]-close[j-1])/close[j-1]);
+      const vol20 = std(rets20);
+      // 7. vol_change_5d
+      const vc5 = vol[i-5] > 0 ? (vol[i] - vol[i-5]) / vol[i-5] : 0;
+      // 8. vol_ma5_ratio
+      let vma5 = 0; for (let j = i-4; j <= i; j++) vma5 += vol[j]; vma5 /= 5;
+      const vmr = vma5 > 0 ? vol[i] / vma5 : 1;
+      // 9. rsi_14
+      let gS = 0, lS = 0;
+      for (let j = i-13; j <= i; j++) { const d = close[j]-close[j-1]; if (d>0) gS+=d; else lS+=-d; }
+      const rs = lS > 0 ? (gS/14)/(lS/14) : 100;
+      const rsi14 = 100 - 100/(1+rs);
+      // 10. momentum_10d
+      const mom10 = close[i-10] > 0 ? close[i]/close[i-10] - 1 : 0;
+      // 11. high_low_ratio
+      const hlr = close[i] > 0 ? (high[i] - low[i]) / close[i] : 0;
+      // 12. turnover_proxy
+      const tp = close[i] > 0 ? amount[i] / close[i] : 0;
+
+      F.push({
+        features: [r5, r20, ma5d, ma20d, pmr, vol20, vc5, vmr, rsi14, mom10, hlr, tp],
+        index: i
+      });
+    }
+    return F;
+  },
+
+  // ---- 标准化 ----
+  standardize(F) {
+    const nf = F[0].features.length;
+    const means = new Array(nf).fill(0), stds = new Array(nf).fill(1);
+    for (let j = 0; j < nf; j++) {
+      let s = 0; for (const row of F) s += row.features[j]; means[j] = s / F.length;
+      let ss = 0; for (const row of F) ss += (row.features[j] - means[j]) ** 2;
+      stds[j] = Math.sqrt(ss / F.length) || 1;
+    }
+    for (const row of F) row.features = row.features.map((v, j) => (v - means[j]) / stds[j]);
+    return { means, stds };
+  },
+
+  // ---- 线性回归 (正规方程) ----
+  linearRegression(X, y) {
+    const n = X.length, nf = X[0].length;
+    // 构建增广矩阵 [X | 1]
+    const Xa = X.map(r => [...r, 1]);
+    // XtX = Xa^T * Xa
+    const XtX = []; const XtY = new Array(nf+1).fill(0);
+    for (let i = 0; i <= nf; i++) {
+      XtX.push(new Array(nf+1).fill(0));
+      for (let j = 0; j <= nf; j++) {
+        let s = 0; for (let k = 0; k < n; k++) s += Xa[k][i] * Xa[k][j];
+        XtX[i][j] = s;
+      }
+      let sy = 0; for (let k = 0; k < n; k++) sy += Xa[k][i] * y[k];
+      XtY[i] = sy;
+    }
+    // 高斯消元
+    const w = [...XtY];
+    for (let col = 0; col <= nf; col++) {
+      let maxR = col;
+      for (let r = col+1; r <= nf; r++) if (Math.abs(XtX[r][col]) > Math.abs(XtX[maxR][col])) maxR = r;
+      if (maxR !== col) { [XtX[col], XtX[maxR]] = [XtX[maxR], XtX[col]]; [w[col], w[maxR]] = [w[maxR], w[col]]; }
+      if (Math.abs(XtX[col][col]) < 1e-12) continue;
+      for (let r = col+1; r <= nf; r++) {
+        const f = XtX[r][col] / XtX[col][col];
+        for (let c = col; c <= nf; c++) XtX[r][c] -= f * XtX[col][c];
+        w[r] -= f * w[col];
+      }
+    }
+    const beta = new Array(nf+1).fill(0);
+    for (let r = nf; r >= 0; r--) {
+      let s = w[r];
+      for (let c = r+1; c <= nf; c++) s -= XtX[r][c] * beta[c];
+      beta[r] = Math.abs(XtX[r][r]) > 1e-12 ? s / XtX[r][r] : 0;
+    }
+    const weights = beta.slice(0, nf), bias = beta[nf];
+    return {
+      predict(xs) { let z = bias; for (let j = 0; j < nf; j++) z += weights[j] * xs[j]; return z; },
+      importance() { return weights.map((w, j) => Math.abs(w)); }
+    };
+  },
+
+  // ---- 决策树回归 (方差减少分裂) ----
+  regressionTree(X, y, maxDepth, minSamples, depth) {
+    depth = depth || 0; minSamples = minSamples || 5; maxDepth = maxDepth || 5;
+    const n = y.length;
+    const mean = y.reduce((a,b) => a+b, 0) / n;
+    if (depth >= maxDepth || n < minSamples * 2 || n < 2) return { leaf: true, val: mean };
+
+    let bestVar = Infinity, bestFeat = -1, bestThresh = 0, bestImpReduction = 0;
+    const baseVar = y.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+    const nf = X[0].length;
+
+    for (let f = 0; f < nf; f++) {
+      const sorted = [];
+      for (let i = 0; i < n; i++) sorted.push({ x: X[i][f], y: y[i] });
+      sorted.sort((a, b) => a.x - b.x);
+
+      let leftSum = 0, leftSq = 0, leftN = 0;
+      let rightSum = y.reduce((a,b)=>a+b,0), rightSq = y.reduce((s,v)=>s+v*v,0), rightN = n;
+
+      for (let i = 0; i < n - 1; i++) {
+        leftSum += sorted[i].y; leftSq += sorted[i].y * sorted[i].y; leftN++;
+        rightSum -= sorted[i].y; rightSq -= sorted[i].y * sorted[i].y; rightN--;
+        if (sorted[i+1].x === sorted[i].x) continue;
+        const lMean = leftSum / leftN, rMean = rightSum / rightN;
+        const lVar = (leftSq - leftSum*lMean) / leftN;
+        const rVar = (rightSq - rightSum*rMean) / rightN;
+        const wVar = (leftN/n)*lVar + (rightN/n)*rVar;
+        if (wVar < bestVar) {
+          bestVar = wVar; bestFeat = f;
+          bestThresh = (sorted[i+1].x + sorted[i].x) / 2;
+          bestImpReduction = baseVar - wVar;
+        }
+      }
+    }
+
+    if (bestFeat === -1) return { leaf: true, val: mean };
+
+    const lX = [], lY = [], rX = [], rY = [];
+    for (let i = 0; i < n; i++) {
+      if (X[i][bestFeat] <= bestThresh) { lX.push(X[i]); lY.push(y[i]); }
+      else { rX.push(X[i]); rY.push(y[i]); }
+    }
+    if (lX.length === 0 || rX.length === 0) return { leaf: true, val: mean };
+
+    return {
+      leaf: false, feat: bestFeat, thresh: bestThresh, imp: bestImpReduction,
+      left: MLS.regressionTree(lX, lY, maxDepth, minSamples, depth+1),
+      right: MLS.regressionTree(rX, rY, maxDepth, minSamples, depth+1)
+    };
+  },
+
+  treePredict(tree, xs) {
+    if (tree.leaf) return tree.val;
+    if (xs[tree.feat] <= tree.thresh) return MLS.treePredict(tree.left, xs);
+    return MLS.treePredict(tree.right, xs);
+  },
+
+  // 递归收集决策树各节点的特征重要性
+  treeImportance(tree, imp) {
+    if (!tree || tree.leaf) return;
+    if (tree.feat >= 0 && tree.imp > 0) imp[tree.feat] = (imp[tree.feat] || 0) + tree.imp;
+    MLS.treeImportance(tree.left, imp);
+    MLS.treeImportance(tree.right, imp);
+  },
+
+  // ---- 滚动回测 ----
+  // data: 原始K线, period: 预测周期, window: 训练窗口, modelType: 'tree'|'linear', threshold: 信号阈值
+  backtest(data, period, window, modelType, threshold) {
+    const factors = MLS.buildFactors(data);
+    if (factors.length < window + period + 20) return null;
+
+    // 构建训练标签: 未来period日收益率
+    const close = data.map(d => d.close);
+    const labeled = [];
+    for (const f of factors) {
+      const idx = f.index;
+      if (idx + period < close.length) {
+        const fwdRet = (close[idx + period] - close[idx]) / close[idx];
+        labeled.push({ ...f, fwdRet });
+      }
+    }
+
+    // 标准化参数（用全部数据计算）
+    const scaler = MLS.standardize(labeled);
+
+    // 滚动回测
+    const signals = []; // {index, type: 'buy'|'sell', predRet}
+    const navPoints = [{ idx: 0, nav: 1.0, bench: 1.0, dateIdx: factors[window].index }];
+    let nav = 1.0, bench = 1.0, holding = false;
+    let buyIdx = -1;
+    const allImportance = new Array(12).fill(0);
+    let nModels = 0;
+
+    let pos = window;
+    const step = Math.max(1, Math.floor(period / 2)); // 滑动步长
+
+    while (pos + period < labeled.length) {
+      // 训练区间 [pos-window, pos)
+      const trainStart = Math.max(0, pos - window);
+      const trainData = labeled.slice(trainStart, pos);
+      if (trainData.length < 20) { pos += step; continue; }
+
+      const X_train = trainData.map(d => d.features);
+      const y_train = trainData.map(d => d.fwdRet);
+
+      let model;
+      if (modelType === 'linear') {
+        model = MLS.linearRegression(X_train, y_train);
+      } else {
+        const tree = MLS.regressionTree(X_train, y_train, 5, 5, 0);
+        model = { predict: xs => MLS.treePredict(tree, xs) };
+        const imp = {}; MLS.treeImportance(tree, imp);
+        for (let j = 0; j < 12; j++) allImportance[j] += (imp[j] || 0);
+        nModels++;
+      }
+      if (modelType === 'linear' && model.importance) {
+        const imp = model.importance();
+        for (let j = 0; j < 12; j++) allImportance[j] += imp[j];
+        nModels++;
+      }
+
+      // 预测当前点
+      const curSample = labeled[pos].features.slice();
+      const predRet = model.predict(curSample);
+
+      // 信号生成
+      if (predRet > threshold && !holding) {
+        holding = true; buyIdx = labeled[pos].index;
+        signals.push({ index: labeled[pos].index, type: 'buy', predRet });
+      } else if (predRet <= threshold && holding) {
+        holding = false;
+        signals.push({ index: labeled[pos].index, type: 'sell', predRet });
+      }
+
+      // 计算该period的收益
+      const startIdx = labeled[pos].index;
+      const endIdx = Math.min(startIdx + period, close.length - 1);
+      const periodReturn = (close[endIdx] - close[startIdx]) / close[startIdx];
+
+      // 策略收益: 持仓则跟随, 否则为0
+      const stratReturn = holding ? periodReturn : 0;
+      nav *= (1 + stratReturn);
+      bench *= (1 + periodReturn);
+
+      navPoints.push({ idx: navPoints.length, nav, bench, dateIdx: endIdx });
+
+      pos += step;
+    }
+
+    // 如果最后还持仓, 卖出
+    if (holding && signals.length > 0) {
+      signals.push({ index: close.length - 1, type: 'sell', predRet: 0 });
+    }
+
+    // 平均因子重要性
+    const avgImp = allImportance.map(v => nModels > 0 ? v / nModels : 0);
+    // 归一化
+    const impSum = avgImp.reduce((a,b)=>a+b, 0) || 1;
+    const normImp = avgImp.map(v => v / impSum);
+
+    return { signals, navPoints, normalizedImportance: normImp, nFactors: labeled.length };
+  },
+
+  // ---- 绩效指标计算 ----
+  performance(navPoints) {
+    if (!navPoints || navPoints.length < 2) return {};
+    const sNav = navPoints.map(p => p.nav);
+    const bNav = navPoints.map(p => p.bench);
+    const n = sNav.length;
+
+    // 策略收益序列
+    const sRets = [], bRets = [];
+    for (let i = 1; i < n; i++) {
+      sRets.push(sNav[i] / sNav[i-1] - 1);
+      bRets.push(bNav[i] / bNav[i-1] - 1);
+    }
+
+    const cumRet = (sNav[n-1] - 1) * 100;
+    const benchCumRet = (bNav[n-1] - 1) * 100;
+    // 年化 (假设每个period约20个交易日, 252交易日/年)
+    const tradingDays = (n - 1) * 20;
+    const years = tradingDays / 252 || 1;
+    const annRet = (Math.pow(sNav[n-1], 1/years) - 1) * 100;
+    const benchAnnRet = (Math.pow(bNav[n-1], 1/years) - 1) * 100;
+
+    // 最大回撤
+    let peak = sNav[0], mdd = 0;
+    for (const v of sNav) { if (v > peak) peak = v; const dd = (v - peak) / peak; if (dd < mdd) mdd = dd; }
+
+    // 年化波动率
+    const sMean = sRets.reduce((a,b)=>a+b, 0) / sRets.length;
+    const sVar = sRets.reduce((s,v)=>s+(v-sMean)**2, 0) / sRets.length;
+    const annVol = Math.sqrt(sVar * (252/20)) * 100;
+
+    // 夏普比率
+    const rf = 0.02 / (252/20);
+    const sharpe = annVol > 0 ? Math.sqrt(252/20) * (sMean - rf) / Math.sqrt(sVar) : 0;
+
+    // 胜率
+    const wins = sRets.filter((r, i) => r > bRets[i]).length;
+    const winRate = sRets.length > 0 ? wins / sRets.length * 100 : 0;
+
+    // 超额收益
+    const alpha = cumRet - benchCumRet;
+
+    return { cumRet, annRet, benchCumRet, benchAnnRet, mdd: mdd * 100, annVol, sharpe, winRate, alpha, nPeriods: n - 1 };
+  }
+};
+
+// ---- MLS图表和交互 ----
+let mlsCharts = {};
+let mlsLastResult = null;
+
+function initMLSCharts() {
+  // 信号图
+  mlsCharts.signal = new Chart(document.getElementById('mlsSignalChart'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: '收盘价', data: [], borderColor: '#58a6ff', borderWidth: 1.2, pointRadius: 0, tension: 0.1, yAxisID: 'y' },
+        { label: '买入', data: [], borderColor: 'transparent', backgroundColor: 'transparent', pointStyle: 'triangle', pointRadius: 8, pointHoverRadius: 10, showLine: false },
+        { label: '卖出', data: [], borderColor: 'transparent', backgroundColor: 'transparent', pointStyle: 'crossRot', pointRadius: 8, pointHoverRadius: 10, showLine: false },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: true, labels: { color: '#8b949e', font: { size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: '#8b949e', font: { size: 9 }, maxTicksLimit: 10 }, grid: { color: 'rgba(48,54,61,0.4)' } },
+        y: { position: 'right', ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: 'rgba(48,54,61,0.4)' } }
+      }
+    }
+  });
+
+  // 净值图
+  mlsCharts.nav = new Chart(document.getElementById('mlsNavChart'), {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        { label: '策略净值', data: [], borderColor: '#f85149', borderWidth: 1.8, pointRadius: 0, tension: 0.2 },
+        { label: '基准(买入持有)', data: [], borderColor: '#8b949e', borderWidth: 1.2, borderDash: [4,3], pointRadius: 0, tension: 0.2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      plugins: { legend: { display: true, labels: { color: '#8b949e', font: { size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { ticks: { color: '#8b949e', font: { size: 9 }, maxTicksLimit: 8 }, grid: { color: 'rgba(48,54,61,0.4)' } },
+        y: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: 'rgba(48,54,61,0.4)' } }
+      }
+    }
+  });
+
+  // 因子重要性图
+  mlsCharts.fi = new Chart(document.getElementById('mlsFiChart'), {
+    type: 'bar',
+    data: {
+      labels: ['5日收益','20日收益','MA5偏离','MA20偏离','价格/MA20','20日波动','量变5日','量比MA5','RSI14','动量10日','振幅','换手代理'],
+      datasets: [{
+        label: '重要性',
+        data: new Array(12).fill(0),
+        backgroundColor: 'rgba(208,88,46,0.7)',
+        borderColor: '#f0883e',
+        borderWidth: 0.5
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false, indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { color: 'rgba(48,54,61,0.4)' } },
+        y: { ticks: { color: '#8b949e', font: { size: 9 } }, grid: { display: false } }
+      }
+    }
+  });
+}
+
+const MLS_FACTOR_NAMES = ['5日收益','20日收益','MA5偏离','MA20偏离','价格/MA20','20日波动','量变5日','量比MA5','RSI14','动量10日','振幅','换手代理'];
+
+function mlsRun() {
+  const data = getVisibleData();
+  if (data.length < 80) { setMLSStatus('数据不足(需至少80条)', 'error'); return; }
+
+  const btn = document.getElementById('mlsRunBtn');
+  btn.disabled = true; btn.textContent = '运行中...';
+  setMLSStatus('训练+回测中...', 'running');
+
+  setTimeout(() => {
+    try {
+      const modelType = document.getElementById('mlsModel').value;
+      const period = parseInt(document.getElementById('mls_period').value);
+      const window = parseInt(document.getElementById('mls_window').value);
+      const threshold = parseInt(document.getElementById('mls_threshold').value) / 100;
+
+      const result = MLS.backtest(data, period, window, modelType, threshold);
+      if (!result) { setMLSStatus('数据不足以回测', 'error'); return; }
+      mlsLastResult = { result, data, modelType, period };
+
+      // 更新参数信息
+      document.getElementById('mls_n_samples').textContent = result.nFactors;
+      document.getElementById('mls_n_periods').textContent = result.navPoints.length - 1;
+      document.getElementById('mls_n_signals').textContent = result.signals.filter(s => s.type === 'buy').length;
+      document.getElementById('mls_model_name').textContent = modelType === 'linear' ? '线性回归' : '决策树回归';
+
+      updateMLSSignalChart(result, data);
+      updateMLSNavChart(result, data);
+      updateMLSFiChart(result);
+      const perf = updateMLSMetrics(result);
+
+      setMLSStatus(`完成: ${result.signals.filter(s=>s.type==='buy').length}次买入 · ${result.navPoints.length-1}期回测`, 'done');
+      updateAdvice();
+    } catch(e) {
+      setMLSStatus('错误: ' + e.message.substring(0, 60), 'error');
+      console.error(e);
+    } finally {
+      btn.disabled = false; btn.textContent = '运行回测';
+    }
+  }, 50);
+}
+
+function updateMLSSignalChart(result, data) {
+  const labels = data.map(d => d.dateLabel);
+  const closes = data.map(d => d.close);
+
+  // 买入信号点
+  const buyPoints = new Array(data.length).fill(null);
+  result.signals.filter(s => s.type === 'buy').forEach(s => {
+    if (s.index < data.length) buyPoints[s.index] = closes[s.index];
+  });
+  // 卖出信号点
+  const sellPoints = new Array(data.length).fill(null);
+  result.signals.filter(s => s.type === 'sell').forEach(s => {
+    if (s.index < data.length) sellPoints[s.index] = closes[s.index];
+  });
+
+  mlsCharts.signal.data.labels = labels;
+  mlsCharts.signal.data.datasets[0].data = closes;
+  mlsCharts.signal.data.datasets[1].data = buyPoints;
+  mlsCharts.signal.data.datasets[1].pointBackgroundColor = '#f85149';
+  mlsCharts.signal.data.datasets[1].pointBorderColor = '#f85149';
+  mlsCharts.signal.data.datasets[2].data = sellPoints;
+  mlsCharts.signal.data.datasets[2].pointBackgroundColor = '#3fb950';
+  mlsCharts.signal.data.datasets[2].pointBorderColor = '#3fb950';
+  mlsCharts.signal.update('none');
+
+  const nBuy = result.signals.filter(s=>s.type==='buy').length;
+  document.getElementById('mlsSignalLabel').innerHTML =
+    `图1: 价格走势 + ML信号标注 · <b>${nBuy}次买入</b>`;
+}
+
+function updateMLSNavChart(result, data) {
+  const labels = result.navPoints.map((p, i) => {
+    if (p.dateIdx < data.length) return data[p.dateIdx].dateLabel;
+    return 'T' + i;
+  });
+  mlsCharts.nav.data.labels = labels;
+  mlsCharts.nav.data.datasets[0].data = result.navPoints.map(p => +(p.nav).toFixed(4));
+  mlsCharts.nav.data.datasets[1].data = result.navPoints.map(p => +(p.bench).toFixed(4));
+  mlsCharts.nav.update('none');
+
+  const finalNav = result.navPoints[result.navPoints.length-1];
+  document.getElementById('mlsNavLabel').innerHTML =
+    `图2: 累计净值 · 策略 <b style="color:${finalNav.nav>=1?'#f85149':'#3fb950'}">${(finalNav.nav*100-100).toFixed(1)}%</b> vs 基准 <b style="color:${finalNav.bench>=1?'#f85149':'#3fb950'}">${(finalNav.bench*100-100).toFixed(1)}%</b>`;
+}
+
+function updateMLSFiChart(result) {
+  mlsCharts.fi.data.labels = MLS_FACTOR_NAMES;
+  mlsCharts.fi.data.datasets[0].data = result.normalizedImportance.map(v => +(v).toFixed(4));
+  mlsCharts.fi.update('none');
+
+  // 标注Top因子
+  const maxIdx = result.normalizedImportance.indexOf(Math.max(...result.normalizedImportance));
+  document.getElementById('mlsFiLabel').innerHTML =
+    `图3: 因子重要性 · Top: <b>${MLS_FACTOR_NAMES[maxIdx]}</b> (${(result.normalizedImportance[maxIdx]*100).toFixed(1)}%)`;
+}
+
+function updateMLSMetrics(result) {
+  const perf = MLS.performance(result.navPoints);
+  if (!perf.cumRet && perf.cumRet !== 0) return perf;
+
+  const setVal = (id, val, isPct) => {
+    const el = document.getElementById(id);
+    if (isPct) el.textContent = (val >= 0 ? '+' : '') + val.toFixed(1) + '%';
+    else el.textContent = val.toFixed(2);
+    // 涨红跌绿
+    if (id === 'mlsm_mdd' || id === 'mlsm_vol') {
+      el.className = 'metric-val ' + (Math.abs(val) > 20 ? 'neg' : 'neutral');
+    } else {
+      el.className = 'metric-val ' + (val > 0 ? 'pos' : val < 0 ? 'neg' : 'neutral');
+    }
+  };
+
+  setVal('mlsm_cumret', perf.cumRet, true);
+  setVal('mlsm_annret', perf.annRet, true);
+  setVal('mlsm_mdd', perf.mdd, true);
+  setVal('mlsm_vol', perf.annVol, true);
+  setVal('mlsm_sharpe', perf.sharpe, false);
+  setVal('mlsm_alpha', perf.alpha, true);
+  setVal('mlsm_winrate', perf.winRate, true);
+
+  return perf;
+}
+
+function setMLSStatus(msg, type) {
+  const el = document.getElementById('mlsStatus');
+  el.textContent = msg;
+  el.className = 'mls-status ' + (type || 'ready');
+}
+
+// ==================== AI综合交易建议引擎 ====================
+let lastMLProbUp = null;   // ML预测涨概率
+let lastMLConf = null;     // ML置信度
+
+function updateAdvice() {
+  const data = getVisibleData();
+  if (data.length < 5) return;
+
+  const close = data.map(d => d.close);
+  const lastClose = close[close.length - 1];
+  const lastDate = data[data.length - 1].dateLabel;
+
+  // ===== 1. 收集各维度信号 (每个返回 {score: -2~+2, label: '看涨'/'看跌'/'中性', detail: '...'}) =====
+  const signals = {};
+
+  // --- RSI ---
+  const rsiPeriod = parseInt(document.getElementById('rsi_period').value);
+  const rsiOB = parseInt(document.getElementById('rsi_ob').value);
+  const rsiOS = parseInt(document.getElementById('rsi_os').value);
+  const rsiArr = Indicators.rsi(close, rsiPeriod);
+  const lastRSI = rsiArr[rsiArr.length - 1];
+  if (lastRSI < rsiOS) {
+    signals.rsi = { score: 2, label: '超卖看涨', detail: `RSI=${lastRSI.toFixed(1)}，低于超卖线${rsiOS}，超跌反弹概率大` };
+  } else if (lastRSI < 40) {
+    signals.rsi = { score: 1, label: '偏弱', detail: `RSI=${lastRSI.toFixed(1)}，接近超卖区域，有反弹潜力` };
+  } else if (lastRSI > rsiOB) {
+    signals.rsi = { score: -2, label: '超买看跌', detail: `RSI=${lastRSI.toFixed(1)}，高于超买线${rsiOB}，回调风险大` };
+  } else if (lastRSI > 60) {
+    signals.rsi = { score: -1, label: '偏强', detail: `RSI=${lastRSI.toFixed(1)}，接近超买区域，追高风险增加` };
+  } else {
+    signals.rsi = { score: 0, label: '中性', detail: `RSI=${lastRSI.toFixed(1)}，处于正常区间` };
+  }
+
+  // --- MACD ---
+  const macdFast = parseInt(document.getElementById('macd_fast').value);
+  const macdSlow = parseInt(document.getElementById('macd_slow').value);
+  const macdSig = parseInt(document.getElementById('macd_signal').value);
+  const { dif, dea, hist } = Indicators.macd(close, macdFast, macdSlow, macdSig);
+  const lastDIF = dif[dif.length - 1];
+  const lastDEA = dea[dea.length - 1];
+  const lastHist = hist[hist.length - 1];
+  const prevHist = hist.length >= 2 ? hist[hist.length - 2] : 0;
+  if (lastDIF > lastDEA && prevHist <= 0 && lastHist > 0) {
+    signals.macd = { score: 2, label: '金叉看涨', detail: `MACD金叉形成，DIF上穿DEA，柱状由负转正，多头动能增强` };
+  } else if (lastDIF > lastDEA && lastHist > prevHist) {
+    signals.macd = { score: 1, label: '多头增强', detail: `DIF>DEA，柱状放大(${lastHist.toFixed(4)})，上升趋势延续` };
+  } else if (lastDIF < lastDEA && prevHist >= 0 && lastHist < 0) {
+    signals.macd = { score: -2, label: '死叉看跌', detail: `MACD死叉形成，DIF下穿DEA，柱状由正转负，空头动能增强` };
+  } else if (lastDIF < lastDEA && lastHist < prevHist) {
+    signals.macd = { score: -1, label: '空头增强', detail: `DIF<DEA，柱状放大(${lastHist.toFixed(4)})，下降趋势延续` };
+  } else if (lastDIF > lastDEA) {
+    signals.macd = { score: 1, label: '金叉区间', detail: `DIF>DEA，多头排列但柱状缩小，动能减弱需警惕` };
+  } else {
+    signals.macd = { score: -1, label: '死叉区间', detail: `DIF<DEA，空头排列但柱状缩小，可能接近转折` };
+  }
+
+  // --- BOLL ---
+  const bollPeriod = parseInt(document.getElementById('boll_period').value);
+  const bollStd = parseInt(document.getElementById('boll_std').value) / 10;
+  const { upper, mid, lower } = Indicators.boll(close, bollPeriod, bollStd);
+  const lastUpper = upper[upper.length - 1];
+  const lastMid = mid[mid.length - 1];
+  const lastLower = lower[lower.length - 1];
+  const bollWidth = (lastUpper - lastLower) / lastMid * 100;
+  if (lastClose > lastUpper) {
+    signals.boll = { score: -1, label: '突破上轨', detail: `收盘${lastClose.toFixed(2)}突破布林上轨${lastUpper.toFixed(2)}，短期超买，注意回调` };
+  } else if (lastClose < lastLower) {
+    signals.boll = { score: 1, label: '跌破下轨', detail: `收盘${lastClose.toFixed(2)}跌破布林下轨${lastLower.toFixed(2)}，短期超卖，关注反弹` };
+  } else if (lastClose > lastMid) {
+    signals.boll = { score: 1, label: '中轨上方', detail: `价格在布林中轨上方运行，多头偏强，带宽${bollWidth.toFixed(1)}%` };
+  } else {
+    signals.boll = { score: -1, label: '中轨下方', detail: `价格在布林中轨下方运行，空头偏强，带宽${bollWidth.toFixed(1)}%` };
+  }
+
+  // --- KDJ ---
+  const kdjN = parseInt(document.getElementById('kdj_n').value);
+  const kdjM1 = parseInt(document.getElementById('kdj_m1').value);
+  const kdjM2 = parseInt(document.getElementById('kdj_m2').value);
+  const high = data.map(d => d.high);
+  const low = data.map(d => d.low);
+  const { k: kArr, d: dArr, j: jArr } = Indicators.kdj(high, low, close, kdjN, kdjM1, kdjM2);
+  const lastK = kArr[kArr.length - 1];
+  const lastD = dArr[dArr.length - 1];
+  const lastJ = jArr[jArr.length - 1];
+  const prevK = kArr.length >= 2 ? kArr[kArr.length - 2] : lastK;
+  const prevD = dArr.length >= 2 ? dArr[dArr.length - 2] : lastD;
+  if (lastJ < 0) {
+    signals.kdj = { score: 2, label: '超卖看涨', detail: `J=${lastJ.toFixed(1)}，严重超卖，短线反弹概率高` };
+  } else if (lastK < 20 && lastD < 20) {
+    signals.kdj = { score: 1, label: '低位金叉区', detail: `K=${lastK.toFixed(1)} D=${lastD.toFixed(1)}，处于低位超卖区` };
+  } else if (lastJ > 100) {
+    signals.kdj = { score: -2, label: '超买看跌', detail: `J=${lastJ.toFixed(1)}，严重超买，短线回调风险高` };
+  } else if (lastK > 80 && lastD > 80) {
+    signals.kdj = { score: -1, label: '高位死叉区', detail: `K=${lastK.toFixed(1)} D=${lastD.toFixed(1)}，处于高位超买区` };
+  } else if (prevK < prevD && lastK > lastD) {
+    signals.kdj = { score: 1, label: 'KDJ金叉', detail: `K线上穿D线，短线买入信号` };
+  } else if (prevK > prevD && lastK < lastD) {
+    signals.kdj = { score: -1, label: 'KDJ死叉', detail: `K线下穿D线，短线卖出信号` };
+  } else {
+    signals.kdj = { score: 0, label: '中性', detail: `K=${lastK.toFixed(1)} D=${lastD.toFixed(1)} J=${lastJ.toFixed(1)}` };
+  }
+
+  // --- 策略持仓 ---
+  let stratScore = 0, stratLabel = '空仓', stratDetail = '', stratHolding = false, stratStopPrice = null;
+  if (currentStrategy === 'ma') {
+    const shortP = parseInt(document.getElementById('strat_short').value);
+    const longP = parseInt(document.getElementById('strat_long').value);
+    const bt = Strategy.backtest(data, shortP, longP);
+    stratHolding = bt.position[bt.position.length - 1] === 1;
+    // 最近信号
+    let lastBuyIdx = -1, lastSellIdx = -1;
+    for (let i = bt.signal.length - 1; i >= 0; i--) {
+      if (bt.signal[i] === 1 && lastBuyIdx < 0) lastBuyIdx = i;
+      if (bt.signal[i] === -1 && lastSellIdx < 0) lastSellIdx = i;
+      if (lastBuyIdx >= 0 && lastSellIdx >= 0) break;
+    }
+    if (stratHolding) {
+      stratScore = 1; stratLabel = '持仓中';
+      const days = bt.signal.length - 1 - lastBuyIdx;
+      stratDetail = `双均线策略当前持仓 (MA${shortP}/MA${longP}金叉状态，持仓${days}天)`;
+    } else {
+      stratScore = -1; stratLabel = '空仓';
+      stratDetail = `双均线策略当前空仓 (MA${shortP}/MA${longP}死叉状态，持币观望)`;
+    }
+  } else {
+    const entryP = parseInt(document.getElementById('turtle_entry').value);
+    const exitP = parseInt(document.getElementById('turtle_exit').value);
+    const atrP = parseInt(document.getElementById('turtle_atr').value);
+    const stopMult = parseInt(document.getElementById('turtle_stop').value) / 10;
+    const bt = TurtleStrategy.backtest(data, entryP, exitP, atrP, stopMult);
+    stratHolding = bt.position[bt.position.length - 1] === 1;
+    const stopArr = bt.stopPrice;
+    if (!isNaN(stopArr[stopArr.length - 1])) stratStopPrice = stopArr[stopArr.length - 1];
+    if (stratHolding) {
+      stratScore = 1; stratLabel = '持仓中';
+      stratDetail = `海龟策略当前持仓 (唐奇安通道突破，ATR止损价${stratStopPrice ? stratStopPrice.toFixed(2) : '-'})`;
+    } else {
+      stratScore = -1; stratLabel = '空仓';
+      stratDetail = `海龟策略当前空仓 (未突破通道上轨，等待入场信号)`;
+    }
+  }
+  signals.strat = { score: stratScore, label: stratLabel, detail: stratDetail };
+
+  // ===== 2. 综合评分 =====
+  // 权重: RSI 1.0, MACD 1.5, BOLL 1.0, KDJ 1.0, 策略 1.5, ML 2.0(如有)
+  const weights = { rsi: 1.0, macd: 1.5, boll: 1.0, kdj: 1.0, strat: 1.5 };
+  let totalScore = 0, totalWeight = 0;
+  for (const key in weights) {
+    totalScore += signals[key].score * weights[key];
+    totalWeight += weights[key] * 2; // 最大绝对值
+  }
+  // ML预测加权 (如果已预测)
+  let mlText = '';
+  if (lastMLProbUp !== null) {
+    const mlScore = (lastMLProbUp - 0.5) * 4; // 映射到 -2 ~ +2
+    totalScore += mlScore * 2.0;
+    totalWeight += 2.0 * 2;
+    const dir = lastMLProbUp >= 0.5 ? '涨' : '跌';
+    mlText = `ML模型预测明日${dir} (涨概率${(lastMLProbUp*100).toFixed(1)}%，置信度${(lastMLConf*100).toFixed(1)}%)`;
+  }
+  // MLS信号加权 (如果已运行)
+  if (mlsLastResult) {
+    const sigs = mlsLastResult.result.signals;
+    if (sigs.length > 0) {
+      const lastSig = sigs[sigs.length - 1];
+      const barsSince = mlsLastResult.data.length - 1 - lastSig.index;
+      if (lastSig.type === 'buy' && barsSince <= 5) {
+        totalScore += 1.5; totalWeight += 1.5 * 2;
+        mlText += (mlText ? '；' : '') + `MLS选股模型${barsSince}天前发出买入信号`;
+      } else if (lastSig.type === 'sell' && barsSince <= 5) {
+        totalScore -= 1.5; totalWeight += 1.5 * 2;
+        mlText += (mlText ? '；' : '') + `MLS选股模型${barsSince}天前发出卖出信号`;
+      }
+    }
+  }
+
+  // 归一化到 -10 ~ +10
+  const rawScore = totalWeight > 0 ? totalScore / totalWeight * 10 : 0;
+  const finalScore = Math.max(-10, Math.min(10, rawScore));
+
+  // ===== 3. 生成建议 =====
+  let action, actionClass, lightClass, lightText, position, stopLoss;
+
+  if (finalScore >= 4) {
+    action = '买入'; actionClass = 'buy-action'; lightClass = 'buy'; lightText = '买入';
+    position = stratHolding ? '已持仓，可加仓至70-80%' : '建议建仓60-70%';
+  } else if (finalScore >= 1.5) {
+    action = '偏多持有'; actionClass = 'buy-action'; lightClass = 'buy'; lightText = '偏多';
+    position = stratHolding ? '继续持有50-60%' : '轻仓试探30-40%';
+  } else if (finalScore > -1.5) {
+    action = '观望'; actionClass = 'hold-action'; lightClass = 'hold'; lightText = '观望';
+    position = stratHolding ? '持有或减仓至30%' : '空仓等待，不追涨不杀跌';
+  } else if (finalScore > -4) {
+    action = '偏空减仓'; actionClass = 'sell-action'; lightClass = 'sell'; lightText = '偏空';
+    position = stratHolding ? '减仓至20%或清仓' : '空仓观望';
+  } else {
+    action = '卖出'; actionClass = 'sell-action'; lightClass = 'sell'; lightText = '卖出';
+    position = stratHolding ? '立即清仓' : '空仓，不宜抄底';
+  }
+
+  // 止损参考
+  if (stratStopPrice) {
+    stopLoss = stratStopPrice.toFixed(2) + '元 (ATR止损)';
+  } else if (action === '买入' || action === '偏多持有') {
+    stopLoss = (lastClose * 0.93).toFixed(2) + '元 (-7%)';
+  } else {
+    stopLoss = '暂不需要';
+  }
+
+  // ===== 4. 构建建议文字 =====
+  const bullSignals = Object.entries(signals).filter(([k,v]) => v.score > 0).map(([k,v]) => v.label);
+  const bearSignals = Object.entries(signals).filter(([k,v]) => v.score < 0).map(([k,v]) => v.label);
+  const neutralSignals = Object.entries(signals).filter(([k,v]) => v.score === 0).map(([k,v]) => v.label);
+
+  // ===== 执行计划（明确时机：15:00时间窗口 + T+1规则）=====
+  // 市场规则：15:00前提交 → 当日收盘价/净值确认；15:00后提交 → 次交易日确认
+  const now = new Date();
+  const today15 = new Date(now);
+  today15.setHours(15, 0, 0, 0);
+  const beforeClose = now < today15; // 当前是否在15:00前
+
+  // 计算确认日：今日15:00前→今日确认；15:00后→次交易日确认
+  function nextTradeDay(d) {
+    d = new Date(d); d.setDate(d.getDate() + 1);
+    while (d.getDay() === 0 || d.getDay() === 6) d.setDate(d.getDate() + 1);
+    return d;
+  }
+  const confirmDate = beforeClose ? new Date(now) : nextTradeDay(now);
+  while (confirmDate.getDay() === 0 || confirmDate.getDay() === 6) confirmDate.setDate(confirmDate.getDate() + 1);
+  const fmtDate = d => `${d.getMonth()+1}月${d.getDate()}日`;
+  const confirmStr = fmtDate(confirmDate);
+
+  // 可卖出日 = 确认日 + 1交易日（T+1）
+  const sellableDate = nextTradeDay(confirmDate);
+  const sellableStr = fmtDate(sellableDate);
+
+  // 时间窗口提示
+  const hh = String(now.getHours()).padStart(2,'0');
+  const mm = String(now.getMinutes()).padStart(2,'0');
+  const timeWindow = beforeClose
+    ? `当前 ${hh}:${mm} < 15:00 → <b style="color:#f85149">今日提交，${confirmStr}收盘价确认成交</b>`
+    : `当前 ${hh}:${mm} ≥ 15:00 → <b style="color:#58a6ff">今日已截止，${confirmStr}收盘价确认成交</b>`;
+
+  let execPlan = '';
+  if (action === '买入') {
+    execPlan = `<div class="exec-plan buy-plan">
+      <div class="exec-head">📅 执行计划（T+1交易规则）</div>
+      <div class="exec-row"><b class="exec-label">信号依据:</b> <span>${lastDate}收盘数据 → 综合评分${(finalScore>=0?'+':'')+finalScore.toFixed(1)}，${bullSignals.length}个看涨信号</span></div>
+      <div class="exec-row"><b class="exec-label">⏰ 时间窗口:</b> <span>${timeWindow}</span></div>
+      <div class="exec-row"><b class="exec-label">成交价:</b> <span style="color:#f85149;font-weight:700">${confirmStr}收盘价（非实时价，以当日收盘最终确定）</span></div>
+      <div class="exec-row"><b class="exec-label">建仓方式:</b> <span>分2批：首仓50%（${confirmStr}确认），确认后观察1-2日再加仓30%</span></div>
+      <div class="exec-row"><b class="exec-label">可卖出日:</b> <span><b style="color:#d29922">${sellableStr}起方可卖出</b>（T+1规则：买入确认次日才能卖出）</span></div>
+      <div class="exec-row"><b class="exec-label">买入后止损:</b> <span>设于 ${stopLoss}，跌破则${sellableStr}后提交卖出</span></div>
+      <div class="exec-row"><b class="exec-label">目标仓位:</b> <span style="color:#f85149;font-weight:700">${position}</span></div>
+    </div>`;
+  } else if (action === '卖出') {
+    execPlan = `<div class="exec-plan sell-plan">
+      <div class="exec-head">📅 执行计划（T+1交易规则）</div>
+      <div class="exec-row"><b class="exec-label">信号依据:</b> <span>${lastDate}收盘数据 → 综合评分${(finalScore>=0?'+':'')+finalScore.toFixed(1)}，${bearSignals.length}个看跌信号确认下跌</span></div>
+      <div class="exec-row"><b class="exec-label">⏰ 时间窗口:</b> <span>${timeWindow}</span></div>
+      <div class="exec-row"><b class="exec-label">成交价:</b> <span style="color:#3fb950;font-weight:700">${confirmStr}收盘价</span></div>
+      <div class="exec-row"><b class="exec-label">操作要点:</b> <span>不要等反弹！尽快提交，宁可卖错不捂亏损</span></div>
+      <div class="exec-row"><b class="exec-label">资金到账:</b> <span>卖出确认后资金${sellableStr}可用（T+1），观察下一次买入信号</span></div>
+    </div>`;
+  } else if (action === '偏多持有') {
+    execPlan = `<div class="exec-plan hold-plan">
+      <div class="exec-head">📅 执行计划（当前持仓）</div>
+      <div class="exec-row"><b class="exec-label">信号依据:</b> <span>${lastDate}收盘 → 多头信号偏强，趋势向上</span></div>
+      <div class="exec-row"><b class="exec-label">⏰ 当前操作:</b> <span style="color:#f85149;font-weight:700">${stratHolding ? '继续持有，无需操作' : `可轻仓买入30-40%（${timeWindow}）`}</span></div>
+      <div class="exec-row"><b class="exec-label">卖出条件:</b> <span>评分降至-1.5以下或死叉形成 → 次交易日15:00前提交卖出</span></div>
+      <div class="exec-row"><b class="exec-label">止盈位:</b> <span>涨幅达10-15%可获利了结一半，移动止盈保护利润</span></div>
+      <div class="exec-row"><b class="exec-label">止损位:</b> <span>${stopLoss}</span></div>
+    </div>`;
+  } else if (action === '偏空减仓') {
+    execPlan = `<div class="exec-plan sell-plan">
+      <div class="exec-head">📅 执行计划（减仓信号）</div>
+      <div class="exec-row"><b class="exec-label">信号依据:</b> <span>${lastDate}收盘 → 空头信号增强，风险加大</span></div>
+      <div class="exec-row"><b class="exec-label">⏰ 时间窗口:</b> <span>${timeWindow}</span></div>
+      <div class="exec-row"><b class="exec-label">成交价:</b> <span style="color:#3fb950;font-weight:700">${confirmStr}收盘价</span></div>
+      <div class="exec-row"><b class="exec-label">操作要点:</b> <span>${stratHolding ? '分批减仓：先卖出50%，如继续下跌再清仓剩余' : '空仓观望，不抄底'}</span></div>
+      <div class="exec-row"><b class="exec-label">重新买入:</b> <span>评分回升至+1.5以上且金叉形成，方可重新建仓</span></div>
+    </div>`;
+  } else { // 观望
+    execPlan = `<div class="exec-plan wait-plan">
+      <div class="exec-head">📅 执行计划（观望等待）</div>
+      <div class="exec-row"><b class="exec-label">信号依据:</b> <span>${lastDate}收盘 → 多空信号交织，方向不明</span></div>
+      <div class="exec-row"><b class="exec-label">⏰ 当前操作:</b> <span style="color:#d29922;font-weight:700">${stratHolding ? '持有现有仓位不动' : '空仓观望，不操作'}</span></div>
+      <div class="exec-row"><b class="exec-label">观望原因:</b> <span>看涨${bullSignals.length}个 vs 看跌${bearSignals.length}个，信号矛盾，不操作优于盲目操作</span></div>
+      <div class="exec-row"><b class="exec-label">等待信号:</b> <span>评分突破+1.5（15:00前买入）或跌破-1.5（15:00前卖出）后再行动</span></div>
+    </div>`;
+  }
+
+  let reasonText = `<strong>建议: ${action}</strong> — 综合评分 <b style="color:${finalScore>=0?'#f85149':'#3fb950'}">${finalScore>=0?'+':''}${finalScore.toFixed(1)}/10</b><br>`;
+  reasonText += `<span style="color:#8b949e">看涨信号(${bullSignals.length}):</span> ${bullSignals.length ? bullSignals.join('、') : '无'} | `;
+  reasonText += `<span style="color:#8b949e">看跌信号(${bearSignals.length}):</span> ${bearSignals.length ? bearSignals.join('、') : '无'}<br>`;
+  // 各指标详情
+  reasonText += `<span style="color:#8b949e">详细分析:</span><br>`;
+  for (const key of ['rsi','macd','boll','kdj','strat']) {
+    const names = { rsi: 'RSI', macd: 'MACD', boll: '布林带', kdj: 'KDJ', strat: currentStrategy === 'ma' ? '双均线策略' : '海龟策略' };
+    const s = signals[key];
+    const color = s.score > 0 ? '#f85149' : s.score < 0 ? '#3fb950' : '#d29922';
+    reasonText += `&nbsp;&nbsp;• <b style="color:${color}">${names[key]}: ${s.label}</b> — ${s.detail}<br>`;
+  }
+  reasonText += execPlan;
+
+  // ===== 5. 渲染到DOM =====
+  // 信号灯
+  const lightEl = document.getElementById('adviceLight');
+  lightEl.className = 'signal-light ' + lightClass;
+  lightEl.textContent = lightText;
+
+  // 评分
+  document.getElementById('adviceScore').textContent = (finalScore >= 0 ? '+' : '') + finalScore.toFixed(1);
+  const scoreFill = document.getElementById('adviceScoreFill');
+  const fillPct = Math.abs(finalScore) / 10 * 50;
+  if (finalScore >= 0) {
+    scoreFill.style.left = '50%';
+    scoreFill.style.width = fillPct + '%';
+    scoreFill.className = 'score-fill pos';
+  } else {
+    scoreFill.style.width = fillPct + '%';
+    scoreFill.style.left = (50 - fillPct) + '%';
+    scoreFill.className = 'score-fill neg';
+  }
+
+  // 信号汇总表
+  const sigMap = { rsi: 'adv_rsi', macd: 'adv_macd', boll: 'adv_boll', kdj: 'adv_kdj', strat: 'adv_strat' };
+  for (const key in sigMap) {
+    const el = document.getElementById(sigMap[key]);
+    const s = signals[key];
+    el.textContent = s.label;
+    el.className = 'sig-val ' + (s.score > 0 ? 'bull' : s.score < 0 ? 'bear' : 'neutral');
+    const cell = el.closest('.sig-cell');
+    cell.className = 'sig-cell ' + (s.score > 0 ? 'bull-bg' : s.score < 0 ? 'bear-bg' : '');
+  }
+
+  // 操作建议
+  const actionEl = document.getElementById('adviceAction');
+  actionEl.className = 'advice-action ' + actionClass;
+  actionEl.innerHTML = reasonText;
+
+  // ML附加建议
+  const mlEl = document.getElementById('adviceML');
+  if (mlText) {
+    mlEl.style.display = 'flex';
+    document.getElementById('adviceMLText').textContent = mlText;
+  } else {
+    mlEl.style.display = 'none';
+  }
+
+  // 风险信息
+  document.getElementById('adviceTime').textContent = '更新于 ' + new Date().toLocaleTimeString('zh-CN');
+  document.getElementById('adviceDataDate').textContent = lastDate;
+  document.getElementById('advicePosition').textContent = position;
+  document.getElementById('adviceStopLoss').textContent = stopLoss;
+
+  // ===== 风险指标计算 =====
+  const dailyRet = close.map((v, i) => i > 0 ? (v - close[i-1]) / close[i-1] : 0).slice(1);
+  if (dailyRet.length > 0) {
+    const sorted = [...dailyRet].sort((a, b) => a - b);
+    const varIdx = Math.floor(sorted.length * 0.05);
+    const varVal = sorted[varIdx];
+    const cvarVal = sorted.slice(0, varIdx + 1).reduce((a, b) => a + b, 0) / (varIdx + 1);
+
+    // 滚动夏普 (60日)
+    const win = 60;
+    let rollSR = NaN;
+    if (dailyRet.length >= win) {
+      const sub = dailyRet.slice(-win);
+      const mr = sub.reduce((a,b)=>a+b,0)/win;
+      const vr = sub.reduce((a,b)=>a+(b-mr)**2,0)/win;
+      rollSR = Math.sqrt(vr) > 0 ? Math.sqrt(252) * mr / Math.sqrt(vr) : 0;
+    }
+
+    // 最大回撤
+    const prices = close.slice(-60).length > 0 ? close.slice(-60) : close;
+    let peak = -Infinity, mdd = 0;
+    for (const p of prices) { if (p > peak) peak = p; mdd = Math.min(mdd, (p-peak)/peak); }
+
+    const setRisk = (id, val, fmt) => {
+      const el = document.getElementById(id);
+      el.textContent = fmt(val);
+      el.className = 'sig-val ' + (val > 0 ? 'pos' : val < 0 ? 'neg' : 'neutral');
+    };
+    setRisk('adv_var', varVal, v => (v * 100).toFixed(1) + '%/日');
+    setRisk('adv_cvar', cvarVal, v => (v * 100).toFixed(1) + '%/日');
+    setRisk('adv_rsharpe', rollSR, v => isNaN(v) ? '-' : v.toFixed(2));
+    const ddEl = document.getElementById('adv_dd');
+    ddEl.textContent = (mdd * 100).toFixed(1) + '%';
+    ddEl.className = 'sig-val ' + (mdd >= -0.05 ? 'pos' : mdd >= -0.15 ? 'neutral' : 'neg');
+  }
+}
+
+// ==================== 启动 ====================
+function toggleParamTable() {
+  const wrap = document.getElementById('paramTableWrap');
+  wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  // 绑定滑块
+  bindSlider('rsi_period', 'rsi_period_v');
+  bindSlider('rsi_ob', 'rsi_ob_v');
+  bindSlider('rsi_os', 'rsi_os_v');
+  bindSlider('macd_fast', 'macd_fast_v');
+  bindSlider('macd_slow', 'macd_slow_v');
+  bindSlider('macd_signal', 'macd_signal_v');
+  bindSlider('boll_period', 'boll_period_v');
+  bindSlider('boll_std', 'boll_std_v', true);
+  bindSlider('kdj_n', 'kdj_n_v');
+  bindSlider('kdj_m1', 'kdj_m1_v');
+  bindSlider('kdj_m2', 'kdj_m2_v');
+
+  // 策略滑块 - 双均线
+  document.getElementById('strat_short').addEventListener('input', () => {
+    document.getElementById('strat_short_v').textContent = document.getElementById('strat_short').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('strat_long').addEventListener('input', () => {
+    document.getElementById('strat_long_v').textContent = document.getElementById('strat_long').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+
+  // 策略滑块 - 海龟
+  document.getElementById('turtle_entry').addEventListener('input', () => {
+    document.getElementById('turtle_entry_v').textContent = document.getElementById('turtle_entry').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('turtle_exit').addEventListener('input', () => {
+    document.getElementById('turtle_exit_v').textContent = document.getElementById('turtle_exit').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('turtle_atr').addEventListener('input', () => {
+    document.getElementById('turtle_atr_v').textContent = document.getElementById('turtle_atr').value;
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+  document.getElementById('turtle_stop').addEventListener('input', () => {
+    document.getElementById('turtle_stop_v').textContent = (parseInt(document.getElementById('turtle_stop').value) / 10).toFixed(1);
+    debounce(() => updateStrategy(getVisibleData()), 'strat');
+  });
+
+  // ML滑块
+  document.getElementById('ml_test_size').addEventListener('input', () => {
+    document.getElementById('ml_test_size_v').textContent = document.getElementById('ml_test_size').value + '%';
+  });
+  document.getElementById('ml_depth').addEventListener('input', () => {
+    document.getElementById('ml_depth_v').textContent = document.getElementById('ml_depth').value;
+  });
+  document.getElementById('ml_n_trees').addEventListener('input', () => {
+    document.getElementById('ml_n_trees_v').textContent = document.getElementById('ml_n_trees').value;
+  });
+  document.getElementById('mlModel').addEventListener('change', () => {
+    mlTrained = false;
+    mlModel = null;
+    lastMLProbUp = null;
+    lastMLConf = null;
+    document.getElementById('mlPredictBtn').disabled = true;
+    setMLStatus('模型已切换，请重新训练', 'ready');
+    updateAdvice();
+  });
+
+  // ML选股策略滑块
+  document.getElementById('mls_period').addEventListener('input', () => {
+    document.getElementById('mls_period_v').textContent = document.getElementById('mls_period').value + '日';
+  });
+  document.getElementById('mls_window').addEventListener('input', () => {
+    document.getElementById('mls_window_v').textContent = document.getElementById('mls_window').value + '日';
+  });
+  document.getElementById('mls_threshold').addEventListener('input', () => {
+    document.getElementById('mls_threshold_v').textContent = document.getElementById('mls_threshold').value + '%';
+  });
+
+  // 解析数据 & 初始化图表
+  rawData = parseCSV(EMBEDDED_CSV);
+  initCharts();
+  initStrategyCharts();
+  initMLChart();
+  initMLSCharts();
+  recalcAll();
+  updateAdvice();
+});
+</script>
+</body>
+</html>

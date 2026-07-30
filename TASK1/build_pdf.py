@@ -93,7 +93,7 @@ def build_data_table():
 
 
 def build_analysis_text():
-    """根据实际数据生成图表解读文字（自动检测除权除息）"""
+    """根据实际数据生成图表解读文字（前复权数据，价格连续平滑）"""
     df = pd.read_csv(CSV_PATH)
 
     # 确保close列存在
@@ -128,49 +128,13 @@ def build_analysis_text():
     # 波动率（标准差）
     volatility = close.std()
 
-    # 检测除权除息（用前一日实际收盘价计算真实跌幅）
-    split_info = ""
-    split_idx = -1
-    for i in range(1, len(df)):
-        prev_close = df.loc[i - 1, "close"]
-        curr_close = df.loc[i, "close"]
-        if prev_close > 0:
-            day_change_pct = (curr_close - prev_close) / prev_close * 100
-            if day_change_pct < -30:  # 单日跌幅超30%通常为除权除息
-                split_idx = i
-                split_date = fmt_date(df.loc[i, "trade_date"])
-                split_close = curr_close
-                split_ratio = prev_close / curr_close if curr_close > 0 else 0
-                split_info = (
-                    f"需要特别说明的是，在{split_date}，该股票收盘价从前一交易日的"
-                    f"{prev_close:.2f}元骤降至{split_close:.2f}元，单日表观跌幅达"
-                    f"{day_change_pct:.2f}%。这一价格跳变并非市场实际下跌，而是由于"
-                    f"公司实施了高送转（除权除息）所致，送转比例约为1:{split_ratio:.1f}。"
-                    f"在非复权数据中，除权日会产生价格断崖式跳变，这是正常的市场现象。"
-                    f"如需分析真实价格走势，应使用前复权或后复权数据。"
-                )
-                break
-
-    # 除权后的走势分析
-    post_split_analysis = ""
-    if split_idx > 0:
-        post_df = df.iloc[split_idx + 1:]
-        if len(post_df) > 0:
-            post_first = post_df.iloc[0]["close"]
-            post_last = post_df.iloc[-1]["close"]
-            post_change = (post_last - post_first) / post_first * 100
-            post_split_analysis = (
-                f"除权后，股价从{post_first:.2f}元变动至末日{last_close:.2f}元，"
-                f"区间涨跌幅为{post_change:+.2f}%，反映出除权后股价的整体运行趋势。"
-            )
-
     analysis = f"""从图1可以看出，比亚迪(002594.SZ)在过去一年（{first_date}至{last_date}）共{total}个交易日中，收盘价整体呈现出明显的波动特征。统计数据显示，该期间收盘价最高达到{max_close:.2f}元（出现在{max_date}），最低为{min_close:.2f}元（出现在{min_date}），均价约为{avg_close:.2f}元。
 
-{split_info}
+本数据采用前复权（qfq）方式处理，已自动消除除权除息带来的价格跳变，价格曲线连续平滑，能够真实反映股价的运行趋势。期间收盘价从首日的{first_close:.2f}元变动至末日的{last_close:.2f}元，区间涨跌幅为{change_pct:+.2f}%。
 
-{post_split_analysis}从整体走势来看，收盘价的标准差为{volatility:.2f}元，反映出该股票在观察期内具有一定的价格波动幅度。该走势图所呈现的价格变化与新能源汽车行业的政策环境、市场竞争格局以及公司基本面变化等因素密切相关，为投资者提供了直观的价格变动参考。
+从整体走势来看，收盘价的标准差为{volatility:.2f}元，反映出该股票在观察期内具有一定的价格波动幅度。该走势图所呈现的价格变化与新能源汽车行业的政策环境、市场竞争格局以及公司基本面变化等因素密切相关，为投资者提供了直观的价格变动参考。
 
-该收盘价走势图为投资者提供了直观的价格变动参考，有助于识别价格的趋势方向和波动区间，为后续的技术分析和投资决策提供数据支撑。如需进行更精确的趋势分析，建议采用前复权或后复权数据以消除除权除息带来的价格跳变影响。"""
+该收盘价走势图为投资者提供了直观的价格变动参考，有助于识别价格的趋势方向和波动区间，为后续的技术分析和投资决策提供数据支撑。前复权数据消除了除权除息的干扰，使技术指标的计算结果更加准确可靠。"""
 
     return analysis.strip()
 
@@ -232,7 +196,7 @@ def build_html():
 <h2>{Q3_TITLE}</h2>
 
 <h3>3.1 数据获取</h3>
-<p>本任务通过 Tushare 平台获取比亚迪(002594.SZ)过去一年的日线交易数据。首先在 Tushare 官网（https://www.tushare.pro/）注册账号并获取 API Token，然后使用 Python 调用 pro_bar 接口获取非复权日线数据。核心代码如下：</p>
+<p>本任务通过 Tushare 平台获取比亚迪(002594.SZ)过去一年的日线交易数据。首先在 Tushare 官网（https://www.tushare.pro/）注册账号并获取 API Token，然后使用 Python 调用 pro_bar 接口获取前复权日线数据。核心代码如下：</p>
 <pre class="code">{code_escaped}</pre>
 <p>上述代码通过 ts.pro_bar() 函数获取了比亚迪从{start_date[:4]}年{start_date[4:6]}月{start_date[6:8]}日至{end_date[:4]}年{end_date[4:6]}月{end_date[6:8]}日期间的日线行情数据，共获取{total_records}个交易日的数据记录。数据来源为{data_source}，字段包括交易日期(trade_date)、开盘价(open)、最高价(high)、最低价(low)、收盘价(close)、成交量(vol)、成交额(amount)等。</p>
 
